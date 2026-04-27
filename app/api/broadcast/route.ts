@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { adminDb, adminFirestore } from '@/lib/firebase-admin'
+import { getAdminDb, getAdminFirestore } from '@/lib/firebase-admin'
 import * as admin from 'firebase-admin'
 
 type BroadcastTarget = {
@@ -9,7 +9,12 @@ type BroadcastTarget = {
 }
 
 export async function POST(req: NextRequest) {
-  if (!adminDb || !adminFirestore) {
+  let adminDb
+  let adminFirestore
+  try {
+    adminDb = getAdminDb()
+    adminFirestore = getAdminFirestore()
+  } catch {
     return NextResponse.json({ error: 'Database unavailable' }, { status: 503 })
   }
 

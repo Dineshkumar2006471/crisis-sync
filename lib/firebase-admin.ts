@@ -1,4 +1,3 @@
-// lib/firebase-admin.ts
 import * as admin from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
@@ -9,49 +8,62 @@ type ServiceAccountLike = {
   private_key: string;
 };
 
+function buildDatabaseUrl(projectId?: string) {
+  const explicitUrl = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
+  if (explicitUrl) {
+    return explicitUrl;
+  }
+
+  if (projectId) {
+    return `https://${projectId}-default-rtdb.firebaseio.com`;
+  }
+
+  return undefined;
+}
+
 function getAdminApp() {
   if (admin.apps.length > 0) {
     return admin.apps[0]!;
   }
 
-  try {
-    let serviceAccount: ServiceAccountLike;
-    
-    // 1. Try Environment Variable (Production/Vercel)
-    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY) as ServiceAccountLike;
-    } 
-    // 2. Try Absolute Path (Local Dev)
-    else {
-      const keyPath = path.resolve(process.cwd(), 'fir-project-f09ad-firebase-adminsdk-fbsvc-9b47310a7d.json');
-      if (fs.existsSync(keyPath)) {
-        serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8')) as ServiceAccountLike;
-      } else {
-        throw new Error(`Firebase Service Account JSON not found at ${keyPath}. Please ensure the file is in the root directory.`);
-      }
-    }
+  const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY) as ServiceAccountLike;
     return admin.initializeApp({
       credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-      databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL || `https://${serviceAccount.project_id}-default-rtdb.firebaseio.com`
+      projectId: serviceAccount.project_id,
+      ...(buildDatabaseUrl(serviceAccount.project_id) ? { databaseURL: buildDatabaseUrl(serviceAccount.project_id) } : {}),
     });
-  } catch (error) {
-    console.error('CRITICAL: Firebase Admin Initialization Failed:', error);
-    // Return a dummy app or let it throw so the route catches it
-    throw error;
   }
+
+  const keyPath = path.resolve(process.cwd(), 'fir-project-f09ad-firebase-adminsdk-fbsvc-9b47310a7d.json');
+  if (fs.existsSync(keyPath)) {
+    const serviceAccount = JSON.parse(fs.readFileSync(keyPath, 'utf8')) as ServiceAccountLike;
+    return admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+      projectId: serviceAccount.project_id,
+      ...(buildDatabaseUrl(serviceAccount.project_id) ? { databaseURL: buildDatabaseUrl(serviceAccount.project_id) } : {}),
+    });
+  }
+
+  return admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+    ...(projectId ? { projectId } : {}),
+    ...(buildDatabaseUrl(projectId) ? { databaseURL: buildDatabaseUrl(projectId) } : {}),
+  });
 }
 
-// Ensure it's initialized
-let app: admin.app.App | null = null;
-try {
-   app = getAdminApp();
-} catch {
-   app = null;
+export function getAdminDb() {
+  return getAdminApp().database();
 }
 
-export const adminDb = app ? app.database() : null;
-export const adminFirestore = app ? app.firestore() : null;
-export const adminAuth = app ? app.auth() : null;
+export function getAdminFirestore() {
+  return getAdminApp().firestore();
+}
 
-export default app;
+export function getAdminAuth() {
+  return getAdminApp().auth();
+}
+
+export default getAdminApp;

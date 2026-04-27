@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { adminDb, adminFirestore } from '@/lib/firebase-admin'
+import { getAdminDb, getAdminFirestore } from '@/lib/firebase-admin'
 import * as admin from 'firebase-admin'
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
@@ -42,6 +42,12 @@ const SEVERITY_MAP: Record<string, 'critical' | 'high' | 'medium' | 'low'> = {
   high: 'high',
   medium: 'medium',
   low: 'low',
+}
+
+function omitUndefined<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)
+  ) as T
 }
 
 function normalizeCrisisType(input: unknown): 'fire' | 'medical' | 'security' | 'structural' | 'power' | 'other' {
@@ -140,10 +146,7 @@ async function classifyWithTimeout(incident_text: string, language: string, hote
 }
 
 async function writeRtdbWithTimeout(path: string, data: unknown) {
-  const database = adminDb
-  if (!database) {
-    throw new Error('Realtime Database unavailable')
-  }
+  const database = getAdminDb()
 
   return Promise.race([
     database.ref(path).set(data),
@@ -152,10 +155,7 @@ async function writeRtdbWithTimeout(path: string, data: unknown) {
 }
 
 async function writeFirestoreWithTimeout(id: string, data: Record<string, unknown>) {
-  const firestore = adminFirestore
-  if (!firestore) {
-    throw new Error('Firestore unavailable')
-  }
+  const firestore = getAdminFirestore()
 
   return Promise.race([
     firestore.collection('incidents').doc(id).set(data),
@@ -165,7 +165,10 @@ async function writeFirestoreWithTimeout(id: string, data: Record<string, unknow
 
 export async function POST(req: NextRequest) {
   // 1. Initial Health Check for Firebase Admin
-  if (!adminDb || !adminFirestore) {
+  try {
+    getAdminDb()
+    getAdminFirestore()
+  } catch {
     console.error('API Error: Firebase Admin SDK failed to initialize. Check service account JSON.')
     return NextResponse.json({ 
       error: 'CRITICAL_SYSTEM_ERROR: Database connectivity offline.',
@@ -208,7 +211,7 @@ export async function POST(req: NextRequest) {
     console.log('Classification resolved:', normalizedClassification.crisis_type)
 
     const incident_id = `incident_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-    const incidentData = {
+    const incidentData = omitUndefined({
         id: incident_id,
         hotel_id: hotel_id || 'default',
         hotel_name: hotel_name || 'Unknown Hotel',
@@ -230,10 +233,10 @@ export async function POST(req: NextRequest) {
         emergency_number: normalizedClassification.emergency_number,
         confidence: normalizedClassification.confidence,
         photo_urls: [],
-        created_at: adminFirestore ? admin.firestore.FieldValue.serverTimestamp() : new Date().toISOString(),
-        updated_at: adminFirestore ? admin.firestore.FieldValue.serverTimestamp() : new Date().toISOString(),
+        created_at: admin.firestore.FieldValue.serverTimestamp(),
+        updated_at: admin.firestore.FieldValue.serverTimestamp(),
         response_log: [],
-      }
+      })
 
     let rtdbWriteOk = false
     let rtdbError = ''
@@ -241,7 +244,7 @@ export async function POST(req: NextRequest) {
     // Prioritize RTDB broadcast for realtime staff visibility.
     try {
       await writeRtdbWithTimeout(`live_incidents/${incident_id}`, {
-        ...incidentData,
+        ...omitUndefined(incidentData),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })

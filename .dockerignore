@@ -1,0 +1,14 @@
+.git
+.gitignore
+.next
+node_modules
+.venv
+.pytest_cache
+test-results
+scratch
+backend_log.txt
+*.log
+*.pyc
+__pycache__
+.env.local
+fir-project-*-firebase-adminsdk-*.json
