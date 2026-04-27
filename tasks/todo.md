@@ -18,4 +18,6 @@
 - Frontend corrections completed: report form was rebuilt for responsive structure, login flow was tightened for E2E and accessibility, theme hydration mismatch was removed, map/card/status/dashboard pages were cleaned up to satisfy React and TypeScript constraints.
 - Backend corrections completed: classification route nullability hardened, Firebase admin typing cleaned up, backend pytest flow repaired to run without async plugin assumptions.
 - Verified locally: `npm run lint`, `npm run build`, `python -m pytest backend/tests -q`, and `npm run test:e2e` all pass.
-- Deployment blockers found: local git remote is unset, `gh` CLI is unavailable, active `gcloud` project is `secrets-467623` while app config points to `fir-project-f09ad`, and current `firebase.json` hosting config is not valid for a production Next.js deployment.
+- Git publishing completed: remote `origin` now points to `https://github.com/Dineshkumar2006471/crisis-sync.git`, branch `main` was pushed, and the latest pushed commit is `434d178`.
+- Cloud Run deployment remains blocked by IAM on the GCP project default build service account. `gcloud run deploy` reached the build step after enabling required APIs, then failed with `PERMISSION_DENIED` for `617654374792-compute@developer.gserviceaccount.com`.
+- Additional deployment risk remains in `firebase.json`: the current hosting config rewrites everything to `/index.html` under `.next`, which is not a valid production deployment shape for a Next.js App Router app.
