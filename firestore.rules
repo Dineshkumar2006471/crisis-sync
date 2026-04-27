@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function staffDoc(userId) {
+      return get(/databases/$(database)/documents/staff/$(userId));
+    }
+
+    function hasStaffProfile() {
+      return isSignedIn() && exists(/databases/$(database)/documents/staff/$(request.auth.uid));
+    }
+
+    function requesterHotelId() {
+      return hasStaffProfile() ? staffDoc(request.auth.uid).data.hotel_id : null;
+    }
+
+    function requesterRole() {
+      return hasStaffProfile() ? staffDoc(request.auth.uid).data.role : null;
+    }
+
+    function isAdminOrManagement() {
+      return requesterRole() in ['admin', 'management'];
+    }
+
+    function sameHotel(resourceHotelId) {
+      return hasStaffProfile() && requesterHotelId() == resourceHotelId;
+    }
+
+    match /staff/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSelf(userId);
+      allow delete: if false;
+    }
+
+    match /incidents/{incidentId} {
+      allow create: if isSignedIn()
+        && request.resource.data.hotel_id is string
+        && request.resource.data.raw_text is string
+        && request.resource.data.status in ['reported', 'acknowledged', 'responding', 'resolved'];
+
+      allow read: if isSignedIn() && (
+        sameHotel(resource.data.hotel_id)
+        || isAdminOrManagement()
+      );
+
+      allow update: if isSignedIn() && (
+        sameHotel(resource.data.hotel_id)
+        || isAdminOrManagement()
+      );
+
+      allow delete: if isSignedIn() && isAdminOrManagement();
+    }
+  }
+}
