@@ -17,6 +17,7 @@ def test_classify_success(monkeypatch):
         return {
             'crisis_type': 'fire',
             'severity': 'critical',
+            'severity_score': 96,
             'confidence': 0.96,
             'summary_english': 'Smoke reported near room 312.',
             'guest_instruction': 'Stay calm and avoid elevators.',
@@ -26,6 +27,11 @@ def test_classify_success(monkeypatch):
                 'housekeeping': 'Guide rooms 301-320 toward staircases.',
                 'management': 'Activate fire protocol and coordinate agencies.',
             },
+            'tactical_objectives': [
+                'Confirm smoke source near room 312',
+                'Clear guests using stair routes',
+                'Stage responders at the nearest safe approach',
+            ],
             'call_emergency_services': True,
             'emergency_number': '101',
         }
@@ -45,6 +51,7 @@ def test_classify_success(monkeypatch):
     payload = response.json()
     assert payload['crisis_type'] == 'fire'
     assert payload['severity'] == 'critical'
+    assert payload['severity_score'] == 96
     assert payload['emergency_number'] == '101'
 
 
@@ -68,3 +75,4 @@ def test_classify_fallback_on_exception(monkeypatch):
     assert payload['crisis_type'] == 'security'
     assert payload['severity'] in ['high', 'critical']
     assert payload['guest_instruction']
+    assert len(payload['tactical_objectives']) == 3

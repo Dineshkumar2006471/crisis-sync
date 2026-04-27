@@ -6,6 +6,7 @@ import { GeminiClassifyResponse } from '@/lib/types'
 
 const E2E_BYPASS_ENABLED =
   process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_E2E_BYPASS_AUTH === 'true'
+const REPORT_REQUEST_TIMEOUT_MS = 95000
 
 interface ReportFormProps {
   hotelId?: string
@@ -194,7 +195,7 @@ export function ReportForm({
           : text
 
       const controller = new AbortController()
-      const timeoutId = window.setTimeout(() => controller.abort(), 10000)
+      const timeoutId = window.setTimeout(() => controller.abort(), REPORT_REQUEST_TIMEOUT_MS)
 
       const response = await fetch('/api/classify', {
         method: 'POST',
@@ -261,6 +262,9 @@ export function ReportForm({
           <p className="mx-auto max-w-md text-sm leading-6 text-[var(--text-secondary)]">
             {result.guest_instruction}
           </p>
+          <div className="mono-display text-[0.7rem] font-black tracking-[0.18em] text-[var(--accent)]">
+            AI SEVERITY SCORE: {result.severity_score ?? Math.round(result.confidence * 100)}/100
+          </div>
         </div>
 
         {result.call_emergency_services && (

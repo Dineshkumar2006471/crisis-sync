@@ -36,9 +36,11 @@ export interface Incident {
   gemini_summary: string
   guest_instruction: string
   staff_instructions: StaffInstructions
+  tactical_objectives?: string[]
   call_emergency_services: boolean
   emergency_number?: string
   confidence: number
+  severity_score?: number
   photo_urls: string[]
   created_at: Timestamp | string
   updated_at: Timestamp | string
@@ -77,9 +79,11 @@ export interface GeminiClassifyResponse {
   crisis_type: CrisisType
   severity: SeverityLevel
   confidence: number
+  severity_score?: number
   summary_english: string
   guest_instruction: string
   staff_instructions: StaffInstructions
+  tactical_objectives?: string[]
   call_emergency_services: boolean
   emergency_number: string
 }

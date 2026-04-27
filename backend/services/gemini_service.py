@@ -55,10 +55,12 @@ The reporter wrote the following message in {language}:
 Analyze the report and return ONLY valid JSON with these keys:
 - crisis_type: one of fire, medical, security, structural, power, other
 - severity: one of critical, high, medium, low
+- severity_score: integer between 0 and 100 representing overall operational urgency
 - confidence: numeric value between 0 and 1
 - summary_english: brief factual SITREP in English
 - guest_instruction: calm sentence-case safety instruction for the guest in {language}
 - staff_instructions: object with front_desk, security, housekeeping, management
+- tactical_objectives: array of exactly 3 short mission objectives tailored to this incident
 - call_emergency_services: boolean
 - emergency_number: string or null, and if emergency services are needed it must be one of 101, 102, or 112
 
@@ -68,6 +70,8 @@ Rules:
 - If the incident is serious, instruct evacuation using stairs and never elevators.
 - Keep guest_instruction in normal sentence case, never all caps.
 - Use Indian emergency routing: fire=101, medical=102, security/structural/power/other=112.
+- A locked room, jammed door, or access-control issue without violence, smoke, injury, or intruder evidence is usually security with medium severity, not high.
+- Reserve high or critical severity for active danger, injury risk, fire, violent threat, structural instability, trapped occupants, or life-safety impact.
 """
 
 CONFIDENCE_WORD_MAP = {
@@ -134,6 +138,7 @@ def _normalize_output(data: dict) -> dict:
     return {
         "crisis_type": normalized_crisis_type,
         "severity": normalized_severity,
+        "severity_score": _normalize_severity_score(data.get("severity_score"), normalized_severity),
         "confidence": _normalize_confidence(data.get("confidence", 0.8)),
         "summary_english": str(data.get("summary_english", "Incident reported and classified.")),
         "guest_instruction": str(
@@ -166,10 +171,73 @@ def _normalize_output(data: dict) -> dict:
                 or "Oversee escalation and coordinate with responders."
             ),
         },
+        "tactical_objectives": _normalize_tactical_objectives(data.get("tactical_objectives"), normalized_crisis_type),
         "call_emergency_services": call_emergency_services,
         "emergency_number": emergency_number if call_emergency_services else (emergency_number or "112"),
         "model_version": str(data.get("model_version", "unknown")),
     }
+
+
+def _normalize_severity_score(value: object, severity: str) -> int:
+    defaults = {
+        "critical": 92,
+        "high": 78,
+        "medium": 55,
+        "low": 26,
+    }
+
+    if isinstance(value, (int, float)):
+        return max(0, min(100, int(round(float(value)))))
+
+    if isinstance(value, str):
+        try:
+            return max(0, min(100, int(round(float(value.strip())))))
+        except ValueError:
+            pass
+
+    return defaults.get(severity, 55)
+
+
+def _normalize_tactical_objectives(value: object, crisis_type: str) -> list[str]:
+    if isinstance(value, list):
+        cleaned = [str(item).strip() for item in value if str(item).strip()]
+        if len(cleaned) >= 3:
+            return cleaned[:3]
+
+    defaults = {
+        "fire": [
+            "Confirm smoke or flame source and trigger fire protocol",
+            "Clear guests from the affected floor using stair routes",
+            "Stage responders and fire services access at the nearest safe approach",
+        ],
+        "medical": [
+            "Confirm the guest condition and keep the area clear for treatment",
+            "Dispatch the nearest trained responder with first-aid equipment",
+            "Prepare ambulance handoff and route access if escalation is needed",
+        ],
+        "security": [
+            "Verify the guest's immediate safety and isolate the affected access point",
+            "Dispatch security or engineering to restore controlled access",
+            "Preserve relevant CCTV or access-control evidence for follow-up",
+        ],
+        "structural": [
+            "Isolate the affected area and stop guest traffic nearby",
+            "Check for debris, collapse risk, or trapped occupants",
+            "Escalate to engineering leadership and emergency services if instability is confirmed",
+        ],
+        "power": [
+            "Confirm the outage scope and identify impacted guest areas",
+            "Dispatch engineering to restore critical systems and trapped-access risks",
+            "Issue calm guest guidance and protect elevator and corridor safety",
+        ],
+        "other": [
+            "Confirm the reported situation with the nearest staff unit",
+            "Stabilize guest safety at the reported location",
+            "Escalate to the correct department and maintain incident updates",
+        ],
+    }
+
+    return defaults.get(crisis_type, defaults["other"])
 
 
 async def classify_crisis(incident_text: str, language: str, hotel_name: str) -> dict:

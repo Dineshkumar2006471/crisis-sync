@@ -29,3 +29,9 @@
 - Live frontend is now deployed and verified at `https://crisis-sync-web-617654374792.us-central1.run.app`.
 - Deployed workflow verification completed:
   the frontend root returns `200`, `/admin` returns `200`, the backend `/health` returns operational status, and the deployed frontend `/api/classify` successfully classified a fire report and wrote both RTDB and Firestore records.
+- AI incident analysis corrections completed:
+  the frontend classify route no longer aborts valid Gemini responses after a 6.5 second timeout, the guest report form now waits long enough for real AI classification, fallback classification no longer inflates severity just because the selected panic-type hint contains words like `security`, and the locked-door scenario now resolves to `security` + `medium` with incident-specific guest/staff instructions.
+- Incident response detail corrections completed:
+  incidents now persist `severity_score` and `tactical_objectives`, and the incident page renders situation-specific operational objectives instead of the old static checklist strings.
+- Live regression verification completed for the reported issue:
+  submitting `door got locked by someone` through the Cloud Run frontend now returns AI-backed `security` / `medium`, writes both RTDB and Firestore successfully, includes a numeric severity score, and stores tailored tactical objectives rather than the generic fallback text.

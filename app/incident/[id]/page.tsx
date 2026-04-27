@@ -14,33 +14,182 @@ import { toDate } from '@/lib/utils'
 
 const STATUS_FLOW: ResponseStatus[] = ['reported', 'acknowledged', 'responding', 'resolved']
 
-const OPERATIONAL_CHECKLIST: Record<ResponseStatus, string[]> = {
-  reported: [
-    'Analyze incident severity and type',
-    'Verify location and floor integrity',
-    'Identify nearest available response unit'
-  ],
-  acknowledged: [
-    'Dispatch unit to designated coordinates',
-    'Establish secure field communications',
-    'Prepare necessary tactical equipment'
-  ],
-  responding: [
-    'Secure immediate perimeter',
-    'Implement guest evacuation protocols',
-    'Address primary threat/crisis source',
-    'Provide continuous SITREP updates'
-  ],
-  resolved: [
-    'Conduct final site integrity sweep',
-    'Complete comprehensive mission report',
-    'Release responders from incident site'
-  ]
-}
-
 const HOTEL_COORDS: Record<string, { lat: number; lng: number }> = {
   default: { lat: 19.076, lng: 72.877 },
   hotel_001: { lat: 19.076, lng: 72.877 },
+}
+
+function buildOperationalChecklist(incident: Incident): string[] {
+  const locationLabel = incident.room_number
+    ? `room ${incident.room_number}`
+    : incident.location_description || 'the reported area'
+  const text = `${incident.raw_text} ${incident.gemini_summary}`.toLowerCase()
+  const lockIssue = incident.crisis_type === 'security' && /(lock|locked|door|access|key)/.test(text)
+  const defaultReported = incident.tactical_objectives?.filter(Boolean).slice(0, 3)
+
+  if (incident.status === 'reported' && defaultReported && defaultReported.length === 3) {
+    return defaultReported
+  }
+
+  if (lockIssue) {
+    const byStatus: Record<ResponseStatus, string[]> = {
+      reported: [
+        `Confirm whether the guest is locked in or locked out at ${locationLabel}`,
+        'Dispatch security or engineering with controlled-access tools',
+        'Preserve access-control logs and corridor CCTV for follow-up',
+      ],
+      acknowledged: [
+        `Move the nearest security or engineering unit toward ${locationLabel}`,
+        'Keep the guest on comms and verify there is no entrapment or medical risk',
+        'Prepare override access or alternate room support if needed',
+      ],
+      responding: [
+        'Restore safe access and verify the guest can enter or exit normally',
+        'Check the lock, door frame, and access-control hardware for tampering',
+        'Document the resolution outcome and any follow-on security action',
+      ],
+      resolved: [
+        'Confirm normal access control has been restored',
+        'Record the final resolution and any hardware issue found',
+        'Close the incident after guest follow-up is completed',
+      ],
+    }
+
+    return byStatus[incident.status]
+  }
+
+  const defaults: Record<ResponseStatus, Record<Incident['crisis_type'], string[]>> = {
+    reported: {
+      fire: [
+        `Confirm the fire or smoke source near ${locationLabel}`,
+        'Clear guests from the affected area using stairs only',
+        'Stage responders and fire-service access immediately',
+      ],
+      medical: [
+        `Confirm the patient condition at ${locationLabel}`,
+        'Dispatch the nearest trained responder with first-aid equipment',
+        'Prepare ambulance access and crowd control if escalation is required',
+      ],
+      security: [
+        `Verify guest safety at ${locationLabel}`,
+        'Dispatch the nearest security unit to assess the threat',
+        'Preserve CCTV, witness, and access-control evidence',
+      ],
+      structural: [
+        `Isolate ${locationLabel} and stop nearby guest movement`,
+        'Check for collapse risk, debris, or trapped occupants',
+        'Escalate to engineering leadership and emergency services if needed',
+      ],
+      power: [
+        `Confirm outage impact around ${locationLabel}`,
+        'Dispatch engineering to restore critical systems and trapped-access risks',
+        'Protect elevator and corridor safety while updates are issued',
+      ],
+      other: [
+        `Confirm the reported issue at ${locationLabel}`,
+        'Stabilize guest safety at the affected location',
+        'Route the incident to the correct operational team',
+      ],
+    },
+    acknowledged: {
+      fire: [
+        'Deploy the nearest fire-response team to the affected zone',
+        'Establish stairwell control and guest movement channels',
+        'Prepare equipment and fire-service handoff details',
+      ],
+      medical: [
+        'Deploy the nearest trained responder to the patient location',
+        'Secure treatment space and maintain guest privacy',
+        'Prepare external medical escalation if the patient deteriorates',
+      ],
+      security: [
+        'Deploy the nearest security unit to the scene',
+        'Establish controlled communications with front desk and management',
+        'Prepare evidence capture and witness coordination',
+      ],
+      structural: [
+        'Deploy engineering and security to assess the hazard perimeter',
+        'Establish a safe stand-off distance and reroute guest traffic',
+        'Prepare structural escalation and emergency access',
+      ],
+      power: [
+        'Deploy engineering to diagnose the outage scope',
+        'Coordinate guest safety checks in dark or stalled-access areas',
+        'Prepare backup lighting or contingency systems',
+      ],
+      other: [
+        'Dispatch the relevant response unit to the reported location',
+        'Establish field communications and guest-contact continuity',
+        'Prepare any tools or support resources required on arrival',
+      ],
+    },
+    responding: {
+      fire: [
+        'Secure the immediate perimeter and keep guests clear of the hazard',
+        'Complete evacuation support and suppress the primary fire source if safe',
+        'Maintain continuous SITREP updates until fire services assume control',
+      ],
+      medical: [
+        'Support treatment at scene and protect responder access',
+        'Stabilize the guest until handoff or recovery is confirmed',
+        'Maintain continuous SITREP updates for management',
+      ],
+      security: [
+        'Secure the immediate perimeter and protect nearby guests',
+        'Resolve the primary threat or access-control problem',
+        'Maintain continuous SITREP updates and preserve evidence',
+      ],
+      structural: [
+        'Keep the hazard perimeter secure and prevent re-entry',
+        'Assess and control the primary structural risk',
+        'Maintain continuous SITREP updates for engineering leadership',
+      ],
+      power: [
+        'Protect impacted guests and unsafe dark-access zones',
+        'Resolve the primary outage or isolated electrical issue',
+        'Maintain continuous SITREP updates until service stabilizes',
+      ],
+      other: [
+        'Secure the immediate area and stabilize guest impact',
+        'Address the primary issue with the assigned response team',
+        'Maintain continuous SITREP updates until the situation is controlled',
+      ],
+    },
+    resolved: {
+      fire: [
+        'Conduct a final fire-safety and re-entry sweep',
+        'Complete the incident report and responder handoff notes',
+        'Release field units once the area is safe and documented',
+      ],
+      medical: [
+        'Confirm final patient disposition and area recovery',
+        'Complete the incident report and treatment timeline',
+        'Release responders once follow-up actions are assigned',
+      ],
+      security: [
+        'Confirm the scene is safe and guest access is restored',
+        'Complete the incident report and evidence notes',
+        'Release responders once all follow-up tasks are assigned',
+      ],
+      structural: [
+        'Confirm the area remains isolated or approved for controlled re-entry',
+        'Complete the incident report and engineering findings',
+        'Release responders once site safety ownership is transferred',
+      ],
+      power: [
+        'Confirm critical systems and guest access have normalized',
+        'Complete the incident report and restoration timeline',
+        'Release responders once monitoring ownership is transferred',
+      ],
+      other: [
+        'Confirm the issue is fully stabilized and guest impact is closed',
+        'Complete the incident report and final resolution notes',
+        'Release responders once follow-up ownership is assigned',
+      ],
+    },
+  }
+
+  return defaults[incident.status][incident.crisis_type]
 }
 
 function toIncident(id: string, raw: Record<string, unknown>): Incident {
@@ -65,9 +214,13 @@ function toIncident(id: string, raw: Record<string, unknown>): Incident {
       housekeeping: String(staffInstructions.housekeeping || ''),
       management: String(staffInstructions.management || ''),
     },
+    tactical_objectives: Array.isArray(raw.tactical_objectives)
+      ? raw.tactical_objectives.map((item) => String(item)).filter((item) => item.length > 0)
+      : undefined,
     call_emergency_services: Boolean(raw.call_emergency_services),
     emergency_number: raw.emergency_number ? String(raw.emergency_number) : undefined,
     confidence: Number(raw.confidence ?? 0),
+    severity_score: raw.severity_score !== undefined ? Number(raw.severity_score) : undefined,
     photo_urls: Array.isArray(raw.photo_urls) ? (raw.photo_urls as string[]) : [],
     created_at: (raw.created_at as Incident['created_at']) || new Date().toISOString(),
     updated_at: (raw.updated_at as Incident['updated_at']) || new Date().toISOString(),
@@ -301,6 +454,7 @@ export default function IncidentDetailPage() {
   const hotelCoords = HOTEL_COORDS[incident.hotel_id] || HOTEL_COORDS.default
   const coords = { lat: incident.lat ?? hotelCoords.lat, lng: incident.lng ?? hotelCoords.lng }
   const currentStatusIdx = STATUS_FLOW.indexOf(incident.status)
+  const operationalChecklist = buildOperationalChecklist(incident)
 
   return (
     <div className="min-h-[100dvh] bg-[var(--bg-base)] flex flex-col font-[var(--font-body)] text-[var(--text-primary)] w-full overflow-hidden">
@@ -411,9 +565,14 @@ export default function IncidentDetailPage() {
                    Priority_Level_{incident.severity.toUpperCase()}
                  </span>
               </div>
-              <span className="mono-display text-[0.65rem] font-black text-[var(--text-muted)] opacity-50">
-                INIT_TIME: {toDate(incident.created_at).toLocaleTimeString([], { hour12: false })}
-              </span>
+              <div className="flex items-center gap-4">
+                <span className="mono-display text-[0.65rem] font-black text-[var(--accent)]">
+                  SCORE: {incident.severity_score ?? Math.round(incident.confidence * 100)}/100
+                </span>
+                <span className="mono-display text-[0.65rem] font-black text-[var(--text-muted)] opacity-50">
+                  INIT_TIME: {toDate(incident.created_at).toLocaleTimeString([], { hour12: false })}
+                </span>
+              </div>
             </div>
 
             <h2 className="text-3xl font-black tracking-tighter uppercase leading-[0.9] mb-6">
@@ -433,7 +592,7 @@ export default function IncidentDetailPage() {
             </div>
             
             <div className="flex flex-col gap-4 mb-10">
-              {OPERATIONAL_CHECKLIST[incident.status].map((task, idx) => (
+              {operationalChecklist.map((task, idx) => (
                 <div key={idx} className="flex items-start gap-4 p-5 bg-[var(--surface-high)]/20 rounded-3xl border border-[var(--outline-variant)]/30 group active:bg-[var(--accent-muted)] transition-colors">
                   <div className="w-6 h-6 rounded-lg bg-[var(--bg-base)] flex items-center justify-center border border-[var(--outline-variant)] shrink-0">
                     <span className="material-icons-round text-[0.65rem] text-[var(--accent)]">check</span>
