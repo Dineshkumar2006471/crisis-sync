@@ -33,6 +33,8 @@ backend_log.txt
 test-results/
 .pytest_cache/
 Screenshot*.png
+__pycache__/
+*.pyc
 
 # env files (can opt-in for committing if needed)
 .env*
