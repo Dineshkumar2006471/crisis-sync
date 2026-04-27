@@ -2,12 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies first (using paths relative to the project root context)
-COPY backend/requirements.txt ./requirements.txt
+# Install dependencies first from the backend source context.
+COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all backend source code
-COPY backend/ ./backend/
+# Copy the backend package into /app/backend so existing imports continue to work.
+COPY . ./backend/
 
 # Set environment
 ENV PORT=8080

@@ -19,5 +19,10 @@
 - Backend corrections completed: classification route nullability hardened, Firebase admin typing cleaned up, backend pytest flow repaired to run without async plugin assumptions.
 - Verified locally: `npm run lint`, `npm run build`, `python -m pytest backend/tests -q`, and `npm run test:e2e` all pass.
 - Git publishing completed: remote `origin` now points to `https://github.com/Dineshkumar2006471/crisis-sync.git`, branch `main` was pushed, and the latest pushed commit is `434d178`.
-- Cloud Run deployment remains blocked by IAM on the GCP project default build service account. `gcloud run deploy` reached the build step after enabling required APIs, then failed with `PERMISSION_DENIED` for `617654374792-compute@developer.gserviceaccount.com`.
-- Additional deployment risk remains in `firebase.json`: the current hosting config rewrites everything to `/index.html` under `.next`, which is not a valid production deployment shape for a Next.js App Router app.
+- Root cause for live AI fallback was confirmed and fixed:
+  the prompt never included `incident_text`, Gemini therefore returned placeholder/example JSON, and the parser crashed on non-numeric confidence values like `"high"`.
+- Cloud Run backend deploy blockers were fixed:
+  missing IAM for the default compute service account was resolved, the backend Dockerfile was corrected for `--source backend`, and the Cloud Run runtime env vars were corrected after PowerShell collapsed them into a single variable.
+- Live backend is now deployed and verified at `https://crisis-sync-backend-617654374792.us-central1.run.app`.
+- Remaining production caveat:
+  `firebase.json` is still not a valid production deployment setup for a Next.js App Router frontend, so frontend hosting/deployment should be handled separately from the backend Cloud Run service.
