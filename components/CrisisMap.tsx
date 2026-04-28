@@ -72,8 +72,8 @@ export const CrisisMap = memo(function CrisisMap({ lat, lng, title, severity, lo
           },
         })
       } else {
-        markerRef.current.map = map
-        markerRef.current.position = position
+        markerRef.current.setMap(map)
+        markerRef.current.setPosition(position)
         markerRef.current.setIcon({
           path: google.maps.SymbolPath.CIRCLE,
           fillColor: SEVERITY_COLORS[severity] || '#FF3B3B',
@@ -109,7 +109,7 @@ export const CrisisMap = memo(function CrisisMap({ lat, lng, title, severity, lo
       cancelled = true
       infoWindowRef.current?.close()
       if (markerRef.current) {
-        markerRef.current.map = null
+        markerRef.current.setMap(null)
       }
     }
   }, [isLoaded, lat, lng, locationDescription, severity, title])

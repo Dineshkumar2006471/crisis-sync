@@ -111,7 +111,7 @@ function MapPageContent() {
       }
 
       markersRef.current.forEach((marker) => {
-        marker.map = null
+        marker.setMap(null)
       })
       markersRef.current = []
 
@@ -175,7 +175,7 @@ function MapPageContent() {
     return () => {
       cancelled = true
       markersRef.current.forEach((marker) => {
-        marker.map = null
+        marker.setMap(null)
       })
       markersRef.current = []
     }

@@ -1,0 +1,13 @@
+.gcloudignore
+.git
+.gitignore
+.next
+node_modules
+.venv
+.pytest_cache
+tmp
+test-results
+tests
+scratch
+*.log
+*.tsbuildinfo
