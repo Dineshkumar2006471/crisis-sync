@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminDb, getAdminFirestore } from '@/lib/firebase-admin'
 import * as admin from 'firebase-admin'
+import { logServerTacticalEvent } from '@/lib/audit-server'
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
-const CLASSIFY_TIMEOUT_MS = 90000
+const CLASSIFY_TIMEOUT_MS = 20000
 const RTDB_TIMEOUT_MS = 2500
 const FIRESTORE_TIMEOUT_MS = 3500
 
@@ -487,6 +488,14 @@ export async function POST(req: NextRequest) {
       await writeFirestoreWithTimeout(incident_id, incidentData)
       firestoreWriteOk = true
       console.log('Incident saved to Firestore (Admin)')
+      
+      // Standardized Audit Logging
+      await logServerTacticalEvent(
+        incidentData,
+        'INCIDENT_CREATED',
+        `New ${incidentData.crisis_type.toUpperCase()} incident report classified and initialized.`,
+        { uid: 'system', email: 'ai-classifier' }
+      )
     } catch (err) {
       firestoreError = err instanceof Error ? err.message : 'Unknown Firestore write failure'
       console.error('Firestore write failed:', firestoreError)

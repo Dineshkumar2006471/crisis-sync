@@ -27,15 +27,15 @@ export function RoleBadge({ role }: RoleBadgeProps) {
   return (
     <span
       style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.6875rem',
-        fontWeight: 600,
-        letterSpacing: '0.08em',
+        fontFamily: 'var(--font-data)',
+        fontSize: '0.6rem',
+        fontWeight: 900,
+        letterSpacing: '0.2em',
         textTransform: 'uppercase',
         color,
-        border: `1px solid ${color}`,
+        border: `2px solid ${color}`,
         padding: '2px 8px',
-        borderRadius: '4px',
+        borderRadius: '0px',
         background: `${color}18`,
       }}
     >

@@ -55,7 +55,7 @@ export default function FeaturesPage() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <Link href="/dashboard" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
-                <span className="material-icons-round">arrow_back</span>
+                <span className="material-icons-sharp">arrow_back</span>
               </Link>
               <h1 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>System Features</h1>
             </div>
@@ -85,7 +85,7 @@ export default function FeaturesPage() {
                     border: `1px solid ${f.color}40`,
                     flexShrink: 0
                   }}>
-                    <span className="material-icons-round" style={{ fontSize: '32px' }}>{f.icon}</span>
+                    <span className="material-icons-sharp" style={{ fontSize: '32px' }}>{f.icon}</span>
                   </div>
                   <div>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '8px', color: 'var(--text-primary)' }}>{f.title}</h3>

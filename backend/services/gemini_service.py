@@ -15,24 +15,32 @@ except ImportError:
 # Load environment variables
 load_dotenv('.env.local')
 
-use_vertex = os.environ.get("USE_VERTEX_AI", "false").lower() == "true"
+prefer_vertex = os.environ.get("USE_VERTEX_AI", "false").lower() == "true"
 api_key = os.environ.get("GEMINI_API_KEY")
 project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
 location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 model = None
+active_model_name = "rules-fallback"
+using_vertex = False
 
-if use_vertex and project_id:
-    print(f"Initializing Vertex AI with project {project_id} in {location}")
-    vertexai.init(project=project_id, location=location)
-    model = GenerativeModel(
-        "gemini-2.5-flash",
-        generation_config=GenerationConfig(
-            response_mime_type="application/json",
-            temperature=0.2,
-        ),
-    )
-elif api_key:
+if prefer_vertex and project_id and vertexai is not None:
+    try:
+        print(f"Initializing Vertex AI with project {project_id} in {location}")
+        vertexai.init(project=project_id, location=location)
+        model = GenerativeModel(
+            "gemini-2.5-flash",
+            generation_config=GenerationConfig(
+                response_mime_type="application/json",
+                temperature=0.2,
+            ),
+        )
+        active_model_name = "gemini-2.5-flash"
+        using_vertex = True
+    except Exception as exc:
+        print(f"Vertex initialization failed, falling back to Gemini AI Studio: {exc}")
+
+if model is None and api_key:
     print("Initializing Gemini AI Studio")
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel(
@@ -42,7 +50,9 @@ elif api_key:
             temperature=0.2,
         ),
     )
-else:
+    active_model_name = "gemini-flash-latest"
+
+if model is None:
     print("WARNING: Neither Gemini API Key nor Vertex AI config found.")
 
 CLASSIFY_PROMPT = """
@@ -264,8 +274,7 @@ async def classify_crisis(incident_text: str, language: str, hotel_name: str) ->
             raw = raw.split("```", 1)[1].split("```", 1)[0].strip()
 
         parsed = json.loads(raw)
-        model_name = "gemini-2.5-flash" if use_vertex else "gemini-flash-latest"
-        parsed["model_version"] = model_name
+        parsed["model_version"] = active_model_name
         return _normalize_output(parsed)
     except Exception as exc:
         print(f"Failed to parse Gemini output: {response.text if response else 'No Response'}")

@@ -1,150 +1,67 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { signInWithEmailAndPassword } from 'firebase/auth'
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { auth } from '@/lib/firebase'
-import { saveStaffSession } from '@/lib/staffProfile'
-
-const E2E_BYPASS_ENABLED =
-  process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_E2E_BYPASS_AUTH === 'true'
-
-function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message) {
-    return error.message
-  }
-
-  return fallback
-}
+import Image from 'next/image'
+import { OperatorLoginPanel } from '@/components/OperatorLoginPanel'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
-
-  const handleLogin = async (event: React.FormEvent) => {
-    event.preventDefault()
-    setLoading(true)
-    setError('')
-
-    try {
-      if (E2E_BYPASS_ENABLED) {
-        saveStaffSession({
-          uid: 'e2e-user',
-          email,
-          display_name: 'E2E Operator',
-          role: 'admin',
-          hotel_id: 'hotel_001',
-        })
-        router.push('/dashboard')
-        return
-      }
-
-      await signInWithEmailAndPassword(auth, email, password)
-      router.push('/dashboard')
-    } catch (loginError: unknown) {
-      setError(getErrorMessage(loginError, 'Login failed'))
-      setLoading(false)
-    }
-  }
-
   return (
-    <main className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-[#0A0C10] font-sans">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(255,153,51,0.05),transparent_70%)]" />
-
-      <div className="z-10 flex flex-1 flex-col items-center justify-center px-8">
-        <div className="w-full max-w-sm">
-          <div className="mb-12 text-center">
-            <div className="relative mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-[28px] border border-[#323948] bg-gradient-to-br from-[#1E212B] to-[#12141C] shadow-2xl">
-              <span className="material-icons-round text-4xl text-[#FF9933]">security</span>
-            </div>
-            <h1 className="mb-3 text-4xl font-black uppercase tracking-tighter text-white">CrisisSync</h1>
-            <p className="text-[0.65rem] font-black uppercase tracking-[0.3em] text-[#A0A5B1] opacity-60">
-              Field Operations Link
-            </p>
+    <main className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] flex flex-col lg:flex-row">
+      
+      {/* Left panel — Editorial image (desktop only) */}
+      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
+        <Image
+          src="/images/crisis-command-room.png"
+          alt="CrisisSync Command Center"
+          fill
+          className="object-cover"
+          style={{ filter: 'grayscale(1) brightness(0.3) contrast(1.2)' }}
+          priority
+        />
+        <div className="absolute inset-y-0 right-0 w-px bg-[var(--outline)] z-20" />
+        
+        <div className="absolute top-12 left-12 z-10">
+          <div className="flex items-center gap-3">
+            <div className="live-dot" />
+            <span className="font-display font-black text-lg tracking-tight uppercase text-white/90">CrisisSync</span>
           </div>
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
-              <label
-                htmlFor="email"
-                className="ml-4 text-[0.6rem] font-black uppercase tracking-[0.2em] text-[#626875]"
-              >
-                Operator Identifier
-              </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="op_alpha@crisis-sync.com"
-                className="h-16 w-full rounded-2xl border border-[#262B37] bg-[#12141C] px-6 font-bold text-white placeholder:text-[#323948] focus:border-[#FF9933] focus:outline-none"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="password"
-                className="ml-4 text-[0.6rem] font-black uppercase tracking-[0.2em] text-[#626875]"
-              >
-                Tactical Access Key
-              </label>
-              <input
-                id="password"
-                type="password"
-                placeholder="Password"
-                className="h-16 w-full rounded-2xl border border-[#262B37] bg-[#12141C] px-6 font-bold text-white placeholder:text-[#323948] focus:border-[#FF9933] focus:outline-none"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-              />
-            </div>
-
-            {error && (
-              <div className="flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4">
-                <span className="material-icons-round text-lg text-red-500">report</span>
-                <p className="text-[0.7rem] font-black uppercase tracking-tight text-red-500">{error}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              aria-label="Authorize access"
-              className="mt-4 flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-[#FF9933] text-sm font-black uppercase tracking-[0.2em] text-black shadow-[0_15px_35px_rgba(255,153,51,0.2)] transition-all active:scale-[0.98] disabled:opacity-50"
-            >
-              {loading ? (
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-black/20 border-t-black" />
-              ) : (
-                <>
-                  <span>Authorize Access</span>
-                  <span className="material-icons-round">bolt</span>
-                </>
-              )}
-            </button>
-          </form>
+          <div className="mt-4">
+            <h2 className="font-heading text-5xl italic text-white/80 tracking-tighter leading-[0.9] uppercase">
+              COMMAND
+              <br />
+              <span className="inline-block pt-[10px]">BEGINS HERE</span>
+            </h2>
+          </div>
         </div>
       </div>
 
-      <div className="z-10 flex flex-col items-center gap-8 px-8 pb-12">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-[0.65rem] font-black uppercase tracking-[0.2em] text-[#626875] no-underline transition-colors hover:text-white"
-        >
-          <span className="material-icons-round text-sm">terminal</span>
-          Abort to Command Hub
-        </Link>
-
-        <div className="flex items-center gap-6 opacity-40">
-          <ThemeToggle />
-          <div className="h-4 w-px bg-[#262B37]" />
-          <span className="text-[0.5rem] font-black uppercase tracking-[0.4em] text-[#626875]">SECURE_V1.2.4</span>
+      {/* Right panel — Login form */}
+      <div className="flex-1 flex flex-col">
+        <div className="pt-6 text-center font-data text-[0.55rem] text-[var(--text-muted)] opacity-50 tracking-[0.2em] uppercase">
+          AUTH_PROTOCOL: FIREBASE_SECURE // E2E_ENCRYPTED
         </div>
+
+        <nav className="border-b border-[var(--outline-variant)]">
+          <div className="mx-auto flex h-16 w-full items-center justify-between px-6 sm:px-8">
+            <Link href="/" className="flex items-center gap-3 no-underline text-[var(--text-primary)]">
+              <div className="lg:hidden flex items-center gap-3">
+                <div className="live-dot" />
+                <span className="font-display font-black text-lg tracking-tight uppercase">CrisisSync</span>
+              </div>
+              <span className="hidden lg:inline font-display text-sm font-bold tracking-widest uppercase text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+                ← BACK TO BASE
+              </span>
+            </Link>
+            <Link href="/report" className="font-display text-sm font-bold tracking-widest uppercase no-underline text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">
+              Report
+            </Link>
+          </div>
+        </nav>
+
+        <section className="flex-1 flex items-center justify-center px-6 py-12 sm:px-8">
+          <OperatorLoginPanel className="w-full max-w-md" />
+        </section>
+        
       </div>
     </main>
   )

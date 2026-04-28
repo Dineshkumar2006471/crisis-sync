@@ -51,7 +51,7 @@ export default function SetupPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: '24px' }}>
-      <div style={{ maxWidth: '400px', width: '100%', background: 'var(--surface)', padding: '32px', borderRadius: '8px', border: '1px solid var(--outline-variant)' }}>
+      <div style={{ maxWidth: '400px', width: '100%', background: 'var(--surface)', padding: '32px', borderRadius: '0px', border: '2px solid var(--outline-variant)' }}>
         <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.25rem', marginBottom: '16px' }}>System Initializer</h1>
         <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '24px' }}>
           This tool is intended for local development initialization only.

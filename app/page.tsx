@@ -1,71 +1,76 @@
 'use client'
-// app/page.tsx
+
+import Image from 'next/image'
 import Link from 'next/link'
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-start sm:justify-center p-6 sm:p-0 relative overflow-hidden bg-[var(--bg-base)]">
-      {/* Scanline Overlay */}
-      <div className="scanline" />
-
-
-
-      {/* Animated Mesh Gradient Background */}
-      <div className="absolute inset-0 z-0 pointer-events-none blur-[60px] opacity-40">
-        <div className="absolute top-[30%] left-[20%] w-full h-full bg-[radial-gradient(circle,rgba(255,153,51,0.15)_0%,transparent_50%)]" />
-        <div className="absolute bottom-[30%] right-[20%] w-full h-full bg-[radial-gradient(circle,rgba(59,130,246,0.1)_0%,transparent_50%)]" />
-      </div>
-
-      <div className="relative z-10 w-full sm:max-w-[480px] text-center py-12 sm:py-0">
-        <div className="w-full sm:glass-premium sm:tactical-border sm:p-12 sm:rounded-2xl animate-fade-in-up">
-          {/* Core Security Orb Icon */}
-          <div className="flex justify-center mb-10">
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[rgba(255,153,51,0.05)] border border-[var(--accent-muted)] flex items-center justify-center relative shadow-[0_0_30px_rgba(255,153,51,0.1)]">
-              <div className="absolute inset-[-8px] rounded-full border-2 border-[var(--accent)] border-b-transparent border-r-transparent opacity-40 animate-spin [animation-duration:4s]" />
-              <span className="material-icons-round text-5xl text-[var(--accent)] drop-shadow-[0_0_10px_var(--accent-muted)]">
-                security
-              </span>
-            </div>
+    <main className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] font-body">
+      <nav className="h-16 border-b-2 border-[var(--outline)] bg-[var(--surface)]">
+        <div className="mx-auto flex h-full w-full max-w-6xl items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <div className="live-dot" />
+            <span className="font-display text-lg font-black uppercase tracking-tight">CrisisSync</span>
           </div>
-
-          {/* Branding */}
-          <div className="mb-12">
-            <div className="mono-display text-[0.7rem] text-[var(--accent)] tracking-[0.4em] mb-3 font-black">
-              CRISIS_SYNC v1.2.4
-            </div>
-            <h1 className="font-[var(--font-headline)] font-black text-5xl sm:text-6xl text-white uppercase m-0 leading-none tracking-tight">
-              CrisisSync
-            </h1>
-            <p className="font-[var(--font-body)] text-sm sm:text-base text-[var(--text-secondary)] mt-6 leading-relaxed opacity-80">
-              Strategic AI coordination for hotel infrastructure.<br/>
-              Neutralizing emergencies in real-time.
-            </p>
-          </div>
-
-          {/* Tactical Actions */}
-          <div className="flex flex-col gap-4 w-full">
-            <Link href="/report" className="no-underline">
-              <button className="btn-tactical btn-primary w-full h-16 sm:h-14 text-sm flex items-center justify-center gap-3 cursor-pointer rounded-xl sm:rounded-lg">
-                <span className="material-icons-round text-xl">emergency</span>
-                INITIALIZE_INCIDENT_REPORT
-              </button>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link href="/report" className="btn-tactical border-2 px-4 py-2 text-xs sm:text-sm no-underline">
+              Report Incident
             </Link>
-
-            <Link href="/login" className="no-underline">
-              <button className="btn-ghost hover-accent mono-display w-full h-14 sm:h-12 text-[0.7rem] sm:text-[0.8rem] bg-white/5 backdrop-blur-md cursor-pointer font-black rounded-xl sm:rounded-lg border-[var(--outline-variant)]">
-                OPERATOR_AUTHENTICATION &gt;
-              </button>
+            <Link href="/login" className="btn-ghost border-2 px-4 py-2 text-xs sm:text-sm no-underline">
+              Operator Login
             </Link>
-          </div>
-
-          {/* Footer Meta */}
-          <div className="mono-display mt-12 text-[0.6rem] text-[var(--text-muted)] flex justify-center gap-4 opacity-50">
-            <span>SECURE_LINK: ESTABLISHED</span>
-            <span>STATION: CENTRAL_COMMAND</span>
           </div>
         </div>
-      </div>
+      </nav>
+
+      <section className="relative border-b-2 border-[var(--outline)]">
+        <div className="absolute inset-0">
+          <Image
+            src="/images/crisis-hero-editorial.png"
+            alt="Crisis response command center"
+            fill
+            priority
+            className="object-cover"
+            style={{ filter: 'grayscale(1) brightness(0.32) contrast(1.1)' }}
+          />
+        </div>
+        <div className="absolute inset-0 bg-black/45" />
+
+        <div className="relative mx-auto flex min-h-[72vh] w-full max-w-6xl flex-col justify-center px-4 py-14 sm:px-6 sm:py-16">
+          <p className="mb-4 font-data text-[0.68rem] uppercase tracking-[0.26em] text-[var(--accent)]">HOTEL CRISIS RESPONSE PLATFORM</p>
+          <h1 className="max-w-4xl font-display text-3xl font-black uppercase tracking-tight sm:text-5xl lg:text-6xl">
+            CONTROL EVERY SECOND OF EVERY INCIDENT
+          </h1>
+          <p className="mt-4 max-w-3xl font-display text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)] sm:text-base">
+            SMART PRICING. FASTER RESPONSE. SAFER GUEST EXPERIENCES.
+          </p>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/report" className="btn-tactical border-2 px-6 py-3 text-sm no-underline">
+              Report Incident
+            </Link>
+            <Link href="/login" className="btn-ghost border-2 px-6 py-3 text-sm no-underline">
+              Operator Login
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b-2 border-[var(--outline)] bg-[var(--surface)]">
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-0 sm:grid-cols-4">
+          {[
+            ['<3s', 'AI Classification'],
+            ['60s', 'Alert Broadcast'],
+            ['24/7', 'Monitoring'],
+            ['99.9%', 'Uptime Target'],
+          ].map(([value, label], idx) => (
+            <div key={label} className={`p-5 sm:p-6 ${idx < 3 ? 'sm:border-r-2' : ''} border-[var(--outline)]`}>
+              <div className="font-data text-2xl font-black sm:text-3xl">{value}</div>
+              <div className="mt-1 font-data text-[0.62rem] uppercase tracking-[0.18em] text-[var(--text-muted)]">{label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
     </main>
   )
 }
-

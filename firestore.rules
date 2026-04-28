@@ -34,8 +34,21 @@ service cloud.firestore {
     }
 
     match /staff/{userId} {
-      allow read: if isSignedIn();
-      allow create, update: if isSelf(userId);
+      allow read: if isSelf(userId) || isAdminOrManagement() || sameHotel(resource.data.hotel_id);
+      allow create: if isSelf(userId)
+        && request.resource.data.email is string
+        && request.resource.data.display_name is string
+        && request.resource.data.hotel_id is string
+        && request.resource.data.role in ['front_desk', 'security', 'housekeeping']
+        && request.resource.data.active == false;
+      allow update: if (
+        isSelf(userId)
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.hotel_id == resource.data.hotel_id
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.active == resource.data.active
+        && request.resource.data.created_at == resource.data.created_at
+      ) || isAdminOrManagement();
       allow delete: if false;
     }
 
@@ -56,6 +69,20 @@ service cloud.firestore {
       );
 
       allow delete: if isSignedIn() && isAdminOrManagement();
+    }
+
+    match /logs/{logId} {
+      allow create: if isSignedIn()
+        && request.resource.data.hotelId is string
+        && request.resource.data.incidentId is string
+        && request.resource.data.action is string;
+
+      allow read: if isSignedIn() && (
+        sameHotel(resource.data.hotelId)
+        || isAdminOrManagement()
+      );
+
+      allow update, delete: if false;
     }
   }
 }

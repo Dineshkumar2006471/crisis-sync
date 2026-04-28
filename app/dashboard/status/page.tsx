@@ -2,10 +2,10 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { ref, onValue, off } from 'firebase/database'
-import { collection, getCountFromServer } from 'firebase/firestore'
-import { auth, db, rtdb } from '@/lib/firebase'
+import { collection, getCountFromServer, onSnapshot, orderBy, query, where, limit } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { AuthGuard } from '@/components/AuthGuard'
+import { getSavedStaffSession } from '@/lib/staffProfile'
 
 import { ThemeToggle } from '@/components/ThemeToggle'
 
@@ -17,6 +17,7 @@ export default function SystemStatusPage() {
   const [incidentCount, setIncidentCount] = useState<number | null>(null)
   const [firebaseStatus, setFirebaseStatus] = useState<'CONNECTED' | 'DISCONNECTED'>('DISCONNECTED')
   const [uptime, setUptime] = useState('00:00:00')
+  const hotelId = getSavedStaffSession()?.hotel_id || 'default'
 
   useEffect(() => {
     const start = Date.now()
@@ -31,26 +32,32 @@ export default function SystemStatusPage() {
   }, [])
 
   useEffect(() => {
-    if (!auth.currentUser) return
-    const liveRef = ref(rtdb, 'live_incidents')
-    onValue(
-      liveRef,
+    const liveQuery = query(
+      collection(db, 'incidents'),
+      where('hotel_id', '==', hotelId),
+      orderBy('created_at', 'desc'),
+      limit(40)
+    )
+
+    const unsubscribe = onSnapshot(
+      liveQuery,
       (snapshot) => {
-        const data = snapshot.val() as Record<string, unknown> | null
-        setLiveCount(data ? Object.keys(data).length : 0)
+        const count = snapshot.docs.filter((doc) => doc.data().status !== 'resolved').length
+        setLiveCount(count)
         setFirebaseStatus('CONNECTED')
       },
       () => setFirebaseStatus('DISCONNECTED'),
     )
 
-    return () => off(liveRef)
-  }, [])
+    return () => unsubscribe()
+  }, [hotelId])
 
   useEffect(() => {
-    if (!auth.currentUser) return
     const loadCounts = async () => {
       try {
-        const result = await getCountFromServer(collection(db, 'incidents'))
+        const result = await getCountFromServer(
+          query(collection(db, 'incidents'), where('hotel_id', '==', hotelId))
+        )
         setIncidentCount(result.data().count)
       } catch (err) {
         console.error('Count error:', err)
@@ -58,7 +65,7 @@ export default function SystemStatusPage() {
     }
 
     loadCounts()
-  }, [])
+  }, [hotelId])
 
   return (
     <AuthGuard>
@@ -74,11 +81,11 @@ export default function SystemStatusPage() {
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'space-between',
-            borderBottom: '1px solid var(--outline-variant)'
+            borderBottom: '2px solid var(--outline-variant)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <Link href="/dashboard" className="hover-opacity" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '8px', border: '1px solid var(--outline)' }}>
-                <span className="material-icons-round">arrow_back</span>
+              <Link href="/dashboard" className="hover-opacity" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '0px', border: '2px solid var(--outline)' }}>
+                <span className="material-icons-sharp">arrow_back</span>
               </Link>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <h1 className="mono-display" style={{ fontSize: '1rem', fontWeight: 800, margin: 0, letterSpacing: '0.1em' }}>SYSTEM_DIAGNOSTICS.EXE</h1>
@@ -103,27 +110,27 @@ export default function SystemStatusPage() {
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '24px' }}>
               {/* Connection Status */}
-              <div className="tactical-border glass-premium" style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--outline-variant)' }}>
+              <div className="tactical-border glass-premium" style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', border: '2px solid var(--outline-variant)' }}>
                 <div className="mono-display" style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '16px', letterSpacing: '0.2em' }}>NETWORK_LATENCY</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
                   <span className="mono-display" style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-primary)' }}>24</span>
                   <span className="mono-display" style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 700 }}>MS</span>
                 </div>
-                <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '4px' }}>
-                  <div className={firebaseStatus === 'CONNECTED' ? 'live-dot' : ''} style={{ width: '8px', height: '8px', borderRadius: '50%', background: firebaseStatus === 'CONNECTED' ? 'var(--low)' : 'var(--critical)' }} />
+                <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '0px' }}>
+                  <div className={firebaseStatus === 'CONNECTED' ? 'live-dot' : ''} style={{ width: '8px', height: '8px', borderRadius: '0px', background: firebaseStatus === 'CONNECTED' ? 'var(--low)' : 'var(--critical)' }} />
                   <span className="mono-display" style={{ fontSize: '0.75rem', fontWeight: 700 }}>{firebaseStatus} RTDB_LINK</span>
                 </div>
               </div>
 
               {/* Database Counters */}
-              <div className="tactical-border glass-premium" style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--outline-variant)' }}>
+              <div className="tactical-border glass-premium" style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', border: '2px solid var(--outline-variant)' }}>
                 <div className="mono-display" style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '16px', letterSpacing: '0.2em' }}>REGISTRY_METRICS</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '4px' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '0px' }}>
                     <div className="mono-display" style={{ fontSize: '1.5rem', fontWeight: 900 }}>{liveCount.toString().padStart(3, '0')}</div>
                     <div className="mono-display" style={{ fontSize: '0.6rem', color: 'var(--accent)', fontWeight: 800, marginTop: '4px' }}>LIVE_NODES</div>
                   </div>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '4px' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '0px' }}>
                     <div className="mono-display" style={{ fontSize: '1.5rem', fontWeight: 900 }}>{incidentCount?.toString().padStart(4, '0') ?? '----'}</div>
                     <div className="mono-display" style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontWeight: 800, marginTop: '4px' }}>ARCHIVE</div>
                   </div>
@@ -131,7 +138,7 @@ export default function SystemStatusPage() {
               </div>
 
               {/* Uptime */}
-              <div className="tactical-border glass-premium" style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--outline-variant)' }}>
+              <div className="tactical-border glass-premium" style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', border: '2px solid var(--outline-variant)' }}>
                 <div className="mono-display" style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '16px', letterSpacing: '0.2em' }}>SESSION_RUNTIME</div>
                 <div className="mono-display" style={{ fontSize: '2.5rem', fontWeight: 900, letterSpacing: '0.05em', color: 'var(--accent)' }}>{uptime}</div>
                 <div className="mono-display" style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, marginTop: '10px' }}>Uptime since last kernel reload</div>
@@ -140,12 +147,12 @@ export default function SystemStatusPage() {
 
             {/* Load Simulators */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '20px' }}>
-              <div className="tactical-border glass-premium" style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--outline-variant)' }}>
+              <div className="tactical-border glass-premium" style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', border: '2px solid var(--outline-variant)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <div className="mono-display" style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em' }}>CPU_LOAD_PRIMARY</div>
                   <div className="mono-display" style={{ fontSize: '0.75rem', color: 'var(--accent)', fontWeight: 800 }}>32.4%_UTIL</div>
                 </div>
-                <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden', marginBottom: '16px' }}>
+                <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '0px', overflow: 'hidden', marginBottom: '16px' }}>
                   <div style={{ height: '100%', width: '32%', background: 'var(--accent)', boxShadow: '0 0 15px var(--accent)' }} />
                 </div>
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'flex-end', height: '60px' }}>
@@ -156,7 +163,7 @@ export default function SystemStatusPage() {
                         flex: 1, 
                         height, 
                         background: i > 30 ? 'rgba(255,255,255,0.05)' : 'var(--accent)', 
-                        borderRadius: '1px',
+                        borderRadius: '0px',
                         opacity: i > 30 ? 0.2 : 0.4 + (value / 100) * 0.6
                       }} />
                     )
@@ -164,18 +171,18 @@ export default function SystemStatusPage() {
                 </div>
               </div>
 
-              <div className="tactical-border glass-premium" style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--outline-variant)' }}>
+              <div className="tactical-border glass-premium" style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', border: '2px solid var(--outline-variant)' }}>
                 <div className="mono-display" style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', marginBottom: '16px' }}>MEMORY_BLOCK_ALLOCATION</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '8px' }}>
                   {MEMORY_BLOCKS.map((value, i) => (
                     <div key={i} style={{ 
                       padding: '8px', 
                       background: 'rgba(255,255,255,0.03)', 
-                      border: '1px solid var(--outline-variant)',
+                      border: '2px solid var(--outline-variant)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '2px',
-                      borderRadius: '2px'
+                      borderRadius: '0px'
                     }}>
                       <div className="mono-display" style={{ fontSize: '0.55rem', opacity: 0.5 }}>BLK_{i.toString().padStart(2, '0')}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

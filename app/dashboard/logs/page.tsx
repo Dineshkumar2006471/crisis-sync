@@ -1,12 +1,13 @@
 'use client'
 import { useEffect, useState, useMemo } from 'react'
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore'
+import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { toDate } from '@/lib/utils'
 import { MobileNavBar } from '@/components/MobileNavBar'
 import { AuthGuard } from '@/components/AuthGuard'
 import Link from 'next/link'
 import { Timestamp } from 'firebase/firestore'
+import { getSavedStaffSession } from '@/lib/staffProfile'
 
 interface ActivityLog {
   id: string
@@ -31,10 +32,12 @@ export default function LogsPage() {
 function LogsContent() {
   const [logs, setLogs] = useState<ActivityLog[]>([])
   const [loading, setLoading] = useState(true)
+  const hotelId = getSavedStaffSession()?.hotel_id || 'default'
 
   useEffect(() => {
     const q = query(
       collection(db, 'logs'),
+      where('hotelId', '==', hotelId),
       orderBy('timestamp', 'desc'),
       limit(50)
     )
@@ -52,7 +55,7 @@ function LogsContent() {
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [hotelId])
 
   const groupedLogs = useMemo(() => {
     const groups: { [key: string]: ActivityLog[] } = {}
@@ -76,17 +79,26 @@ function LogsContent() {
       {/* Native Tactical Header */}
       <header className="sticky top-0 z-[100] bg-[var(--bg-base)]/80 backdrop-blur-3xl border-b border-[var(--outline-variant)] pt-[var(--safe-top)]">
         <div className="h-20 px-6 flex items-center justify-between">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] shadow-[0_0_10px_var(--accent)] animate-pulse" />
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="flex h-10 w-10 items-center justify-center border-2 border-[var(--outline-variant)] bg-[var(--surface-high)] text-[var(--text-primary)] no-underline transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+              style={{ borderRadius: '0px' }}
+            >
+              <span className="material-icons-sharp text-lg">arrow_back</span>
+            </Link>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2 mb-1">
+              <div className="w-1.5 h-1.5 bg-[var(--accent)] animate-pulse" />
               <span className="mono-display text-[0.6rem] font-black text-[var(--accent)] tracking-[0.3em] uppercase">SYSTEM_JOURNAL</span>
+              </div>
+              <h1 className="font-[var(--font-headline)] font-black text-2xl tracking-tight text-white uppercase leading-none">
+                Activity_Logs
+              </h1>
             </div>
-            <h1 className="font-[var(--font-headline)] font-black text-2xl tracking-tight text-white uppercase leading-none">
-              Activity_Logs
-            </h1>
           </div>
-          <div className="flex items-center gap-2 bg-[var(--surface-high)] px-3 py-1.5 rounded-xl border border-[var(--outline-variant)]">
-             <span className="material-icons-round text-xs text-[var(--accent)] animate-spin-slow">sync</span>
+          <div className="flex items-center gap-2 bg-[var(--surface-high)] px-3 py-1.5 border-2 border-[var(--outline-variant)]" style={{ borderRadius: '0px' }}>
+             <span className="material-icons-sharp text-xs text-[var(--accent)] animate-spin-slow">sync</span>
              <span className="mono-display text-[0.55rem] font-black text-[var(--text-muted)] tracking-widest">LIVE</span>
           </div>
         </div>
@@ -96,13 +108,13 @@ function LogsContent() {
       <main className="flex-1 w-full pb-[calc(80px+var(--safe-bottom))]">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 gap-6">
-            <div className="w-10 h-10 border-3 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+            <div className="w-10 h-10 border-4 border-[var(--accent)] border-t-transparent animate-spin" />
             <span className="mono-display text-[0.6rem] font-black tracking-[0.4em] text-[var(--text-muted)] animate-pulse uppercase">Accessing_Archive...</span>
           </div>
         ) : logs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 px-10 text-center">
-            <div className="w-20 h-20 rounded-[32px] bg-[var(--surface-high)] flex items-center justify-center mb-6 border border-[var(--outline-variant)] opacity-20">
-              <span className="material-icons-round text-4xl text-[var(--text-muted)]">history_toggle_off</span>
+            <div className="w-20 h-20 bg-[var(--surface-high)] flex items-center justify-center mb-6 border-2 border-[var(--outline-variant)] opacity-20">
+              <span className="material-icons-sharp text-4xl text-[var(--text-muted)]">history_toggle_off</span>
             </div>
             <div className="mono-display text-[0.8rem] font-black tracking-[0.4em] text-[var(--text-muted)] uppercase mb-2">Null_Activity</div>
             <p className="text-[0.7rem] text-[var(--text-secondary)] max-w-[200px] leading-relaxed opacity-40 font-medium">No tactical events recorded in this cycle.</p>
@@ -131,12 +143,12 @@ function LogsContent() {
                     >
                       <div className="px-6 py-5 flex gap-5 items-start border-b border-[var(--outline-variant)]/30">
                         {/* Status Icon */}
-                        <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center border transition-all ${
-                          log.severity === 'critical' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
-                          log.severity === 'high' ? 'bg-orange-500/10 border-orange-500/20 text-orange-500' :
-                          'bg-[var(--accent)]/10 border-[var(--accent)]/20 text-[var(--accent)]'
-                        }`}>
-                          <span className="material-icons-round text-2xl">
+                        <div className={`w-12 h-12 flex-shrink-0 flex items-center justify-center border-2 transition-all ${
+                          log.severity === 'critical' ? 'bg-red-500/10 border-red-500/40 text-red-500' :
+                          log.severity === 'high' ? 'bg-orange-500/10 border-orange-500/40 text-orange-500' :
+                          'bg-[var(--accent)]/10 border-[var(--accent)]/40 text-[var(--accent)]'
+                        }`} style={{ borderRadius: '0px' }}>
+                          <span className="material-icons-sharp text-2xl">
                             {log.type === 'status_change' ? 'published_with_changes' : 
                              log.type === 'broadcast' ? 'campaign' :
                              log.type === 'photo_upload' ? 'photo_camera' : 'edit_note'}
@@ -152,7 +164,7 @@ function LogsContent() {
                                 }`}>
                                   {log.staff_name?.split('@')[0] || 'OP_CORE'}
                                 </span>
-                                <div className="w-1 h-1 rounded-full bg-[var(--outline-variant)] shrink-0" />
+                                <div className="w-1 h-1 bg-[var(--outline-variant)] shrink-0" />
                                 <span className="mono-display text-[0.55rem] text-[var(--text-muted)] font-bold truncate">
                                   {log.incidentType?.toUpperCase()}
                                 </span>
@@ -167,9 +179,9 @@ function LogsContent() {
                           </div>
 
                           <div className="flex items-center gap-3 mt-1.5">
-                             <div className={`px-2 py-0.5 rounded-lg border text-[0.5rem] font-black uppercase tracking-widest ${
-                                log.status === 'resolved' ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-[var(--surface-high)] border-[var(--outline-variant)] text-[var(--text-muted)]'
-                             }`}>
+                             <div className={`px-2 py-0.5 border text-[0.5rem] font-black uppercase tracking-widest ${
+                                log.status === 'resolved' ? 'bg-green-500/10 border-green-500/40 text-green-500' : 'bg-[var(--surface-high)] border-[var(--outline-variant)] text-[var(--text-muted)]'
+                             }`} style={{ borderRadius: '0px' }}>
                                {log.status || 'ACTIVE'}
                              </div>
                              <span className="mono-display text-[0.5rem] text-[var(--text-muted)] font-black tracking-[0.2em] opacity-40">
@@ -179,7 +191,7 @@ function LogsContent() {
                         </div>
                         
                         <div className="self-center opacity-20">
-                          <span className="material-icons-round text-xl text-white">chevron_right</span>
+                          <span className="material-icons-sharp text-xl text-white">chevron_right</span>
                         </div>
                       </div>
                     </Link>

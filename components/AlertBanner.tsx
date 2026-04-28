@@ -1,26 +1,23 @@
 'use client'
 // components/AlertBanner.tsx
-import { useEffect, useState } from 'react'
-import { ref, onValue, off } from 'firebase/database'
-import { rtdb } from '@/lib/firebase'
+import { useEffect, useMemo, useState } from 'react'
 import { Incident } from '@/lib/types'
 import Link from 'next/link'
 
-export function AlertBanner() {
-  const [activeAlerts, setActiveAlerts] = useState<Incident[]>([])
-  const [currentIndex, setCurrentIndex] = useState(0)
+interface AlertBannerProps {
+  alerts: Incident[]
+}
 
-  useEffect(() => {
-    const liveRef = ref(rtdb, 'live_incidents')
-    onValue(liveRef, (snapshot) => {
-      const data = snapshot.val()
-      if (!data) { setActiveAlerts([]); return }
-      const alerts = Object.values(data) as Incident[]
-      const urgent = alerts.filter(a => a.severity === 'critical' || a.severity === 'high')
-      setActiveAlerts(urgent)
-    })
-    return () => off(liveRef)
-  }, [])
+export function AlertBanner({ alerts }: AlertBannerProps) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const activeAlerts = useMemo(
+    () =>
+      alerts.filter(
+        (alert) =>
+          alert.status !== 'resolved' && (alert.severity === 'critical' || alert.severity === 'high')
+      ),
+    [alerts]
+  )
 
   useEffect(() => {
     if (activeAlerts.length <= 1) return
@@ -32,22 +29,23 @@ export function AlertBanner() {
 
   if (activeAlerts.length === 0) return null
 
-  const alert = activeAlerts[currentIndex]
+  const alert = activeAlerts[currentIndex % activeAlerts.length]
   const isCritical = alert.severity === 'critical'
 
   return (
     <div
       style={{
-        background: isCritical ? 'rgba(255,59,48,0.1)' : 'rgba(255,149,0,0.1)',
-        border: `1px solid ${isCritical ? 'var(--critical)' : 'var(--high)'}`,
-        borderLeft: `4px solid ${isCritical ? 'var(--critical)' : 'var(--high)'}`,
-        borderRadius: '4px',
+        background: isCritical ? 'rgba(255,59,48,0.15)' : 'rgba(255,149,0,0.15)',
+        border: `2px solid ${isCritical ? 'var(--critical)' : 'var(--high)'}`,
+        borderLeft: `8px solid ${isCritical ? 'var(--critical)' : 'var(--high)'}`,
+        borderRadius: '0px',
         padding: '12px 20px',
         display: 'flex',
         alignItems: 'center',
         gap: '16px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-        backdropFilter: 'blur(8px)',
+        boxShadow: 'none',
+        backdropFilter: 'none',
+        fontFamily: 'var(--font-data)'
       }}
     >
       <Link
@@ -61,7 +59,7 @@ export function AlertBanner() {
           cursor: 'pointer'
         }}
       >
-        <div className="live-dot" style={{ background: isCritical ? 'var(--critical)' : 'var(--high)', boxShadow: `0 0 10px ${isCritical ? 'var(--critical)' : 'var(--high)'}` }} />
+        <div className="live-dot" style={{ background: isCritical ? 'var(--critical)' : 'var(--high)' }} />
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ 
@@ -102,7 +100,7 @@ export function AlertBanner() {
           alignItems: 'center',
           gap: '4px'
         }}>
-          VIEW <span className="material-icons-round" style={{ fontSize: '16px' }}>arrow_forward</span>
+          VIEW <span className="material-icons-sharp" style={{ fontSize: '16px' }}>arrow_forward</span>
         </span>
       </Link>
     </div>

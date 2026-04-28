@@ -13,15 +13,20 @@ export default function SettingsPage() {
     <AuthGuard>
       <div style={{ minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--text-primary)', padding: '40px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', marginBottom: '8px' }}>
-              <span className="material-icons-round" style={{ fontSize: '18px' }}>settings</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.2em' }}>COMMAND_CONFIG_ROOT</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Link href="/dashboard" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '0px', border: '2px solid var(--outline)' }}>
+              <span className="material-icons-sharp">arrow_back</span>
+            </Link>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', marginBottom: '8px' }}>
+                <span className="material-icons-sharp" style={{ fontSize: '18px' }}>settings</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.2em' }}>COMMAND_CONFIG_ROOT</span>
+              </div>
+              <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '2.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>System Settings</h1>
             </div>
-            <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '2.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>System Settings</h1>
           </div>
           <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-            <button className="btn-ghost" style={{ border: '1px solid var(--outline-variant)', borderRadius: '8px', padding: '10px 20px', fontWeight: 700 }}>
+            <button className="btn-ghost" style={{ border: '2px solid var(--outline-variant)', borderRadius: '0px', padding: '10px 20px', fontWeight: 700 }}>
               SAVE & EXIT
             </button>
           </Link>
@@ -30,28 +35,28 @@ export default function SettingsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '40px' }}>
           {/* Navigation Sidebar */}
           <aside style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <button className="nav-item active" style={{ background: 'var(--surface-high)', border: 'none', textAlign: 'left', padding: '12px 16px', borderRadius: '8px', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 700 }}>
-              <span className="material-icons-round">person</span> Profile & Security
+            <button className="nav-item active" style={{ background: 'var(--surface-high)', border: 'none', textAlign: 'left', padding: '12px 16px', borderRadius: '0px', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 700 }}>
+              <span className="material-icons-sharp">person</span> Profile & Security
             </button>
-            <button className="nav-item" style={{ background: 'transparent', border: 'none', textAlign: 'left', padding: '12px 16px', borderRadius: '8px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 600 }}>
-              <span className="material-icons-round">visibility</span> Display Preferences
+            <button className="nav-item" style={{ background: 'transparent', border: 'none', textAlign: 'left', padding: '12px 16px', borderRadius: '0px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 600 }}>
+              <span className="material-icons-sharp">visibility</span> Display Preferences
             </button>
-            <button className="nav-item" style={{ background: 'transparent', border: 'none', textAlign: 'left', padding: '12px 16px', borderRadius: '8px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 600 }}>
-              <span className="material-icons-round">notifications</span> Notifications
+            <button className="nav-item" style={{ background: 'transparent', border: 'none', textAlign: 'left', padding: '12px 16px', borderRadius: '0px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 600 }}>
+              <span className="material-icons-sharp">notifications</span> Notifications
             </button>
-            <button className="nav-item" style={{ background: 'transparent', border: 'none', textAlign: 'left', padding: '12px 16px', borderRadius: '8px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 600 }}>
-              <span className="material-icons-round">terminal</span> Terminal Config
+            <button className="nav-item" style={{ background: 'transparent', border: 'none', textAlign: 'left', padding: '12px 16px', borderRadius: '0px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 600 }}>
+              <span className="material-icons-sharp">terminal</span> Terminal Config
             </button>
           </aside>
 
           {/* Main Content */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {/* Account Profile */}
-            <section className="glass" style={{ padding: '32px', borderRadius: '16px', border: '1px solid var(--outline-variant)' }}>
+            <section className="glass" style={{ padding: '32px', borderRadius: '0px', border: '2px solid var(--outline-variant)' }}>
               <h2 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em', marginBottom: '24px' }}>OPERATOR_IDENTITY</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-                <div style={{ width: '80px', height: '80px', borderRadius: '40px', background: 'var(--surface-high)', border: '2px solid var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="material-icons-round" style={{ fontSize: '40px', color: 'var(--accent)' }}>person</span>
+                <div style={{ width: '80px', height: '80px', borderRadius: '0px', background: 'var(--surface-high)', border: '2px solid var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-icons-sharp" style={{ fontSize: '40px', color: 'var(--accent)' }}>person</span>
                 </div>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: '1.5rem', marginBottom: '4px' }}>{auth.currentUser?.displayName || 'OPERATOR_01'}</div>
@@ -60,12 +65,12 @@ export default function SettingsPage() {
                     <span className="severity-badge medium" style={{ fontSize: '0.6rem', padding: '2px 8px' }}>LEVEL_4_CLEARANCE</span>
                   </div>
                 </div>
-                <button className="btn-ghost" style={{ marginLeft: 'auto', border: '1px solid var(--outline-variant)', fontSize: '0.8rem' }}>EDIT_PROFILE</button>
+                <button className="btn-ghost" style={{ marginLeft: 'auto', border: '2px solid var(--outline-variant)', fontSize: '0.8rem', borderRadius: '0px' }}>EDIT_PROFILE</button>
               </div>
             </section>
 
             {/* Preferences */}
-            <section className="glass" style={{ padding: '32px', borderRadius: '16px', border: '1px solid var(--outline-variant)' }}>
+            <section className="glass" style={{ padding: '32px', borderRadius: '0px', border: '2px solid var(--outline-variant)' }}>
               <h2 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em', marginBottom: '32px' }}>SYSTEM_PARAMETERS</h2>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -77,7 +82,7 @@ export default function SettingsPage() {
                   <ThemeToggle />
                 </div>
 
-                <div style={{ borderTop: '1px solid var(--outline-variant)' }} />
+                <div style={{ borderTop: '2px solid var(--outline-variant)' }} />
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
@@ -89,9 +94,9 @@ export default function SettingsPage() {
                     style={{
                       width: '50px',
                       height: '26px',
-                      borderRadius: '13px',
+                      borderRadius: '0px',
                       background: simulationMode ? 'var(--accent)' : 'var(--surface-high)',
-                      border: 'none',
+                      border: '2px solid var(--outline)',
                       position: 'relative',
                       cursor: 'pointer',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
@@ -99,19 +104,18 @@ export default function SettingsPage() {
                   >
                     <div style={{
                       position: 'absolute',
-                      top: '3px',
-                      left: simulationMode ? '27px' : '3px',
+                      top: '1px',
+                      left: simulationMode ? '25px' : '1px',
                       width: '20px',
                       height: '20px',
-                      borderRadius: '10px',
+                      borderRadius: '0px',
                       background: 'white',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                     }} />
                   </button>
                 </div>
 
-                <div style={{ borderTop: '1px solid var(--outline-variant)' }} />
+                <div style={{ borderTop: '2px solid var(--outline-variant)' }} />
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
@@ -123,9 +127,9 @@ export default function SettingsPage() {
                     style={{
                       width: '50px',
                       height: '26px',
-                      borderRadius: '13px',
+                      borderRadius: '0px',
                       background: notifications ? 'var(--low)' : 'var(--surface-high)',
-                      border: 'none',
+                      border: '2px solid var(--outline)',
                       position: 'relative',
                       cursor: 'pointer',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
@@ -133,11 +137,11 @@ export default function SettingsPage() {
                   >
                     <div style={{
                       position: 'absolute',
-                      top: '3px',
-                      left: notifications ? '27px' : '3px',
+                      top: '1px',
+                      left: notifications ? '25px' : '1px',
                       width: '20px',
                       height: '20px',
-                      borderRadius: '10px',
+                      borderRadius: '0px',
                       background: 'white',
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     }} />

@@ -130,6 +130,18 @@ export function ReportForm({
   }
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (!lat && !lng) {
+        detectLocation()
+      }
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+    // Only attempt once on first render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
     if (!result) {
       return
     }
@@ -251,8 +263,8 @@ export function ReportForm({
   if (result) {
     return (
       <div className="flex flex-col gap-6 px-1 py-2 text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
-          <span className="material-icons-round text-4xl">check_circle</span>
+        <div className="mx-auto flex h-16 w-16 items-center justify-center border-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+          <span className="material-icons-sharp text-4xl">check_circle</span>
         </div>
 
         <div className="space-y-2">
@@ -268,7 +280,7 @@ export function ReportForm({
         </div>
 
         {result.call_emergency_services && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
+          <div className="border-2 border-red-500/30 bg-red-500/10 p-4">
             <p className="mono-display text-xs font-black tracking-wider text-red-400">
               CALL EMERGENCY SERVICES: {result.emergency_number}
             </p>
@@ -303,10 +315,10 @@ export function ReportForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <div className="space-y-1">
-        <div className="mono-display text-[0.68rem] font-black tracking-[0.22em] text-[var(--text-muted)]">
+        <div className="text-xs font-medium tracking-[0.12em] uppercase text-[var(--text-muted)]">
           {hotelName.toUpperCase()}
         </div>
-        <h2 className="font-[var(--font-headline)] text-2xl font-black uppercase tracking-tight text-[var(--text-primary)]">
+        <h2 className="text-2xl font-semibold uppercase tracking-normal text-[var(--text-primary)]">
           Emergency Report
         </h2>
       </div>
@@ -323,13 +335,13 @@ export function ReportForm({
                 key={button.type}
                 type="button"
                 onClick={() => setPanicType(isActive ? null : button.type)}
-                className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border px-4 py-4 text-center transition-all ${
+                className={`flex min-h-24 flex-col items-center justify-center gap-2  border-2 px-4 py-4 text-center transition-all ${
                   isActive
                     ? button.colorClass
                     : 'border-[var(--outline-variant)] bg-[var(--surface-low)] text-[var(--text-secondary)]'
                 }`}
               >
-                <span className="material-icons-round text-3xl">{button.icon}</span>
+                <span className="material-icons-sharp text-3xl">{button.icon}</span>
                 <span className="text-xs font-black uppercase tracking-[0.18em]">{button.label}</span>
               </button>
             )
@@ -345,7 +357,7 @@ export function ReportForm({
           <button
             type="button"
             onClick={listening ? stopVoice : startVoice}
-            className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-[0.72rem] font-black uppercase tracking-[0.14em] ${
+            className={`inline-flex items-center gap-2  border-2 px-3 py-2 text-[0.72rem] font-black uppercase tracking-[0.14em] ${
               listening
                 ? 'border-red-500/40 bg-red-500/10 text-red-400'
                 : 'border-[var(--outline-variant)] bg-[var(--surface-low)] text-[var(--text-muted)]'
@@ -412,19 +424,19 @@ export function ReportForm({
           type="button"
           onClick={detectLocation}
           disabled={detectingLocation}
-          className={`flex w-full items-center justify-center gap-3 rounded-2xl border px-4 py-3 text-sm font-black uppercase tracking-[0.16em] transition-all ${
+          className={`flex w-full items-center justify-center gap-3  border-2 px-4 py-3 text-sm font-black uppercase tracking-[0.16em] transition-all ${
             lat
               ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
               : 'border-[var(--outline-variant)] bg-[var(--surface-high)] text-[var(--text-primary)]'
           }`}
         >
-          <span className="material-icons-round text-xl">
+          <span className="material-icons-sharp text-xl">
             {detectingLocation ? 'sync' : lat ? 'check_circle' : 'my_location'}
           </span>
           {detectingLocation ? 'Auto Detecting...' : lat ? 'Location Detected' : 'Detect My Location'}
         </button>
         {lat && lng && (
-          <div className="mono-display rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-center text-[0.62rem] font-black tracking-[0.16em] text-emerald-300">
+          <div className="mono-display  border-2 border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-center text-[0.62rem] font-black tracking-[0.16em] text-emerald-300">
             Coordinates Locked: {lat.toFixed(5)}, {lng.toFixed(5)}
           </div>
         )}
@@ -435,7 +447,7 @@ export function ReportForm({
       </a>
 
       {error && (
-        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className=" border-2 border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           ALERT: {error}
         </div>
       )}

@@ -2,8 +2,7 @@
 // app/incident/[id]/page.tsx
 import { ChangeEvent, useEffect, useRef, useState } from 'react'
 import { doc, updateDoc, arrayUnion, serverTimestamp, onSnapshot, addDoc, collection } from 'firebase/firestore'
-import { ref, update, remove, get } from 'firebase/database'
-import { db, rtdb, auth, storage } from '@/lib/firebase'
+import { db, auth, storage } from '@/lib/firebase'
 import { Incident, ResponseStatus } from '@/lib/types'
 import { CrisisMap } from '@/components/CrisisMap'
 import { RoleBadge } from '@/components/RoleBadge'
@@ -11,6 +10,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { toDate } from '@/lib/utils'
+import { logTacticalEvent } from '@/lib/audit'
 
 const STATUS_FLOW: ResponseStatus[] = ['reported', 'acknowledged', 'responding', 'resolved']
 
@@ -266,13 +266,7 @@ export default function IncidentDetailPage() {
         setBroadcastMessage((previous) => previous || mappedIncident.guest_instruction || mappedIncident.gemini_summary)
         setLoading(false)
       } else {
-        get(ref(rtdb, `live_incidents/${id}`)).then(liveSnap => {
-          if (liveSnap.exists()) {
-            const liveData = liveSnap.val() as Record<string, unknown>
-            setIncident(toIncident(id, liveData))
-          }
-          setLoading(false)
-        })
+        setLoading(false)
       }
     })
 
@@ -297,21 +291,7 @@ export default function IncidentDetailPage() {
         ...(newStatus === 'resolved' ? { resolved_at: serverTimestamp() } : {}),
       })
 
-      await addDoc(collection(db, 'logs'), {
-        ...logEntry,
-        incidentId: id,
-        incidentType: incident.crisis_type,
-        severity: incident.severity,
-        hotelId: incident.hotel_id,
-        status: newStatus,
-        type: 'status_change'
-      })
-
-      if (newStatus === 'resolved') {
-        await remove(ref(rtdb, `live_incidents/${id}`))
-      } else {
-        await update(ref(rtdb, `live_incidents/${id}`), { status: newStatus })
-      }
+      await logTacticalEvent(incident, 'STATUS_CHANGE', actionLabel || `Status changed to ${newStatus.toUpperCase()}`)
     } finally {
       setUpdating(false)
     }
@@ -333,15 +313,7 @@ export default function IncidentDetailPage() {
         response_log: arrayUnion(logEntry),
       })
 
-      await addDoc(collection(db, 'logs'), {
-        ...logEntry,
-        incidentId: id,
-        incidentType: incident.crisis_type,
-        severity: incident.severity,
-        hotelId: incident.hotel_id,
-        status: incident.status,
-        type: 'field_update'
-      })
+      await logTacticalEvent(incident, 'FIELD_UPDATE', updateText.trim())
 
       setUpdateText('')
     } finally {
@@ -383,15 +355,7 @@ export default function IncidentDetailPage() {
         response_log: arrayUnion(logEntry),
       })
 
-      await addDoc(collection(db, 'logs'), {
-        ...logEntry,
-        incidentId: incident.id,
-        incidentType: incident.crisis_type,
-        severity: incident.severity,
-        hotelId: incident.hotel_id,
-        status: incident.status,
-        type: 'broadcast'
-      })
+      await logTacticalEvent(incident, 'BROADCAST_SENT', `Broadcast sent (${targetDesc}): ${broadcastMessage.trim()}`)
 
       setBroadcastOpen(false)
     } catch (error) {
@@ -459,17 +423,17 @@ export default function IncidentDetailPage() {
   return (
     <div className="min-h-[100dvh] bg-[var(--bg-base)] flex flex-col font-[var(--font-body)] text-[var(--text-primary)] w-full overflow-hidden">
       {/* Native Sticky Header */}
-      <header className="sticky top-0 z-[100] bg-[var(--bg-base)]/80 backdrop-blur-3xl border-b border-[var(--outline-variant)] w-full pt-[var(--safe-top)]">
+      <header className="sticky top-0 z-[100] bg-[var(--bg-base)] border-b-[2px] border-[var(--outline)] w-full pt-[var(--safe-top)]">
         <div className="h-20 px-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => router.back()} 
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--surface-high)] active:scale-90 transition-transform"
+              className="w-10 h-10 flex items-center justify-center bg-[var(--surface)] border-[2px] border-[var(--outline)] active:scale-90 transition-transform hover:border-[var(--accent)]"
             >
-              <span className="material-icons-round text-2xl">arrow_back</span>
+              <span className="material-icons-sharp text-2xl">arrow_back</span>
             </button>
             <div className="flex flex-col">
-              <span className="mono-display text-[0.6rem] text-[var(--text-muted)] font-black tracking-widest uppercase mb-0.5">
+              <span className="font-data text-[0.55rem] text-[var(--text-muted)] font-black tracking-[0.2em] uppercase mb-0.5">
                 Incident_0{incident.id.slice(0,4)}
               </span>
               <h1 className="text-xl font-black uppercase tracking-tight leading-none">
@@ -486,7 +450,7 @@ export default function IncidentDetailPage() {
         
         {/* Real-time Status Tracker */}
         <div className="w-full px-6 py-8 flex items-center justify-between relative bg-[var(--surface-high)]/10">
-          <div className="absolute top-1/2 left-10 right-10 h-[2px] bg-[var(--outline-variant)] -translate-y-1/2 z-0" />
+          <div className="absolute top-1/2 left-10 right-10 h-[2px] bg-[var(--outline)] -translate-y-1/2 z-0" />
           <div className="absolute top-1/2 left-10 h-[2px] bg-[var(--accent)] -translate-y-1/2 z-0 transition-all duration-700 ease-out" 
                style={{ width: `${(currentStatusIdx / (STATUS_FLOW.length - 1)) * 80}%` }} />
           
@@ -495,12 +459,12 @@ export default function IncidentDetailPage() {
             const isCurrent = idx === currentStatusIdx
             return (
               <div key={status} className="relative z-10 flex flex-col items-center gap-2">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-500 ${
-                  isCurrent ? 'bg-[var(--accent)] text-black scale-125 shadow-[0_0_20px_var(--accent)]' :
+                <div className={`w-7 h-7 flex items-center justify-center text-[10px] font-black transition-all duration-500 ${
+                  isCurrent ? 'bg-[var(--accent)] text-black scale-125' :
                   isActive ? 'bg-[var(--accent-muted)] text-[var(--accent)]' :
-                  'bg-[var(--surface-high)] text-[var(--text-muted)] border border-[var(--outline-variant)]'
+                  'bg-[var(--surface)] text-[var(--text-muted)] border-[2px] border-[var(--outline)]'
                 }`}>
-                  {isCurrent ? <span className="material-icons-round text-sm">my_location</span> : idx + 1}
+                  {isCurrent ? <span className="material-icons-sharp text-sm">my_location</span> : idx + 1}
                 </div>
                 <span className={`text-[0.6rem] font-black uppercase tracking-tighter ${
                   isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'
@@ -513,7 +477,7 @@ export default function IncidentDetailPage() {
         </div>
 
         {/* Tactical Intel Map */}
-        <div className="w-full h-[400px] border-b border-[var(--outline-variant)] relative overflow-hidden group">
+        <div className="w-full h-[400px] border-b-[2px] border-[var(--outline)] relative overflow-hidden group">
           <CrisisMap
             lat={coords.lat}
             lng={coords.lng}
@@ -524,9 +488,9 @@ export default function IncidentDetailPage() {
           
           {/* Emergency Alert Overlay - Moved here to prevent map overlap */}
           {incident.call_emergency_services && (
-            <div className="absolute top-4 left-4 z-[1000] p-4 bg-red-600 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20 animate-pulse">
-               <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-                 <span className="material-icons-round text-red-600">emergency</span>
+            <div className="absolute top-4 left-4 z-[1000] p-4 bg-red-600 flex items-center gap-4 border-[2px] border-white/20 animate-pulse">
+               <div className="w-10 h-10 bg-white flex items-center justify-center">
+                 <span className="material-icons-sharp text-red-600">emergency</span>
                </div>
                <div className="flex flex-col">
                   <span className="text-[0.6rem] font-black uppercase text-white/80 tracking-widest leading-none mb-1">Emergency Required</span>
@@ -539,10 +503,10 @@ export default function IncidentDetailPage() {
             <a 
               href={`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`}
               target="_blank" rel="noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-black/80 backdrop-blur-md rounded-xl border border-white/10 text-white shadow-2xl active:scale-95 transition-transform"
+              className="flex items-center gap-2 px-4 py-2 bg-black/80 backdrop-blur-md border-[2px] border-white/10 text-white active:scale-95 transition-transform"
             >
-              <span className="material-icons-round text-lg text-[var(--accent)]">near_me</span>
-              <span className="mono-display text-[0.6rem] font-black tracking-widest uppercase text-white">Navigate</span>
+              <span className="material-icons-sharp text-lg text-[var(--accent)]">near_me</span>
+              <span className="font-data text-[0.6rem] font-black tracking-[0.2em] uppercase text-white">Navigate</span>
             </a>
           </div>
         </div>
@@ -556,20 +520,20 @@ export default function IncidentDetailPage() {
           }`}>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
-                 <div className={`w-2 h-2 rounded-full ${
+                 <div className={`w-2 h-2 ${
                    incident.severity === 'critical' ? 'bg-red-500 animate-ping' : 'bg-[var(--accent)]'
                  }`} />
-                 <span className={`mono-display text-[0.7rem] font-black tracking-[0.2em] uppercase ${
+                 <span className={`font-data text-[0.6rem] font-black tracking-[0.2em] uppercase ${
                    incident.severity === 'critical' ? 'text-red-500' : 'text-[var(--text-muted)]'
                  }`}>
                    Priority_Level_{incident.severity.toUpperCase()}
                  </span>
               </div>
               <div className="flex items-center gap-4">
-                <span className="mono-display text-[0.65rem] font-black text-[var(--accent)]">
+                <span className="font-data text-[0.6rem] font-black text-[var(--accent)]">
                   SCORE: {incident.severity_score ?? Math.round(incident.confidence * 100)}/100
                 </span>
-                <span className="mono-display text-[0.65rem] font-black text-[var(--text-muted)] opacity-50">
+                <span className="font-data text-[0.55rem] font-black text-[var(--text-muted)] opacity-50">
                   INIT_TIME: {toDate(incident.created_at).toLocaleTimeString([], { hour12: false })}
                 </span>
               </div>
@@ -579,7 +543,7 @@ export default function IncidentDetailPage() {
               {incident.location_description}
             </h2>
 
-            <div className="p-6 bg-[var(--surface-high)]/30 rounded-[32px] border border-[var(--outline-variant)]/50 mb-10">
+            <div className="p-6 bg-[var(--surface)]/30 border-[2px] border-[var(--outline)] mb-10">
                <p className="text-[1.1rem] font-bold text-[var(--text-primary)] leading-tight">
                  {incident.gemini_summary}
                </p>
@@ -588,14 +552,14 @@ export default function IncidentDetailPage() {
             {/* Combined Checklist & Directives into the same background flow */}
             <div className="flex items-center gap-3 mb-8">
               <div className="h-[2px] w-8 bg-[var(--accent)]" />
-              <h3 className="mono-display text-[0.7rem] font-black text-[var(--text-muted)] tracking-[0.2em] uppercase">Tactical_Objectives</h3>
+              <h3 className="font-data text-[0.6rem] font-black text-[var(--text-muted)] tracking-[0.2em] uppercase">Tactical_Objectives</h3>
             </div>
             
             <div className="flex flex-col gap-4 mb-10">
               {operationalChecklist.map((task, idx) => (
-                <div key={idx} className="flex items-start gap-4 p-5 bg-[var(--surface-high)]/20 rounded-3xl border border-[var(--outline-variant)]/30 group active:bg-[var(--accent-muted)] transition-colors">
-                  <div className="w-6 h-6 rounded-lg bg-[var(--bg-base)] flex items-center justify-center border border-[var(--outline-variant)] shrink-0">
-                    <span className="material-icons-round text-[0.65rem] text-[var(--accent)]">check</span>
+                <div key={idx} className="flex items-start gap-4 p-5 bg-[var(--surface)]/20 border-[2px] border-[var(--outline)] group active:bg-[var(--accent-muted)] transition-colors">
+                  <div className="w-6 h-6 bg-[var(--bg-base)] flex items-center justify-center border-[2px] border-[var(--outline)] shrink-0">
+                    <span className="material-icons-sharp text-[0.65rem] text-[var(--accent)]">check</span>
                   </div>
                   <span className="text-[0.95rem] font-bold text-[var(--text-secondary)] leading-tight">{task}</span>
                 </div>
@@ -604,13 +568,13 @@ export default function IncidentDetailPage() {
 
             <div className="flex items-center gap-3 mb-8">
               <div className="h-[2px] w-8 bg-[var(--accent)]" />
-              <h3 className="mono-display text-[0.7rem] font-black text-[var(--text-muted)] tracking-[0.2em] uppercase">Field_Directives</h3>
+              <h3 className="font-data text-[0.6rem] font-black text-[var(--text-muted)] tracking-[0.2em] uppercase">Field_Directives</h3>
             </div>
             
             <div className="flex flex-col gap-6">
-               <div className="p-6 bg-white dark:bg-black rounded-[32px] shadow-sm border border-[var(--outline-variant)]">
+               <div className="p-6 bg-white dark:bg-black border-[2px] border-[var(--outline)]">
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="material-icons-round text-sm text-[var(--accent)]">record_voice_over</span>
+                    <span className="material-icons-sharp text-sm text-[var(--accent)]">record_voice_over</span>
                     <span className="text-[0.6rem] font-black uppercase text-[var(--accent)] tracking-widest">GUEST_PROTOCOL ({incident.language})</span>
                   </div>
                   <p className="text-[1.2rem] font-bold leading-tight">&quot;{incident.guest_instruction}&quot;</p>
@@ -618,7 +582,7 @@ export default function IncidentDetailPage() {
 
                <div className="grid grid-cols-1 gap-3">
                   {Object.entries(incident.staff_instructions || {}).map(([role, text]) => text && (
-                    <div key={role} className="p-5 bg-[var(--surface-high)]/50 rounded-3xl border border-[var(--outline-variant)]/30 flex gap-4 items-start">
+                    <div key={role} className="p-5 bg-[var(--surface)]/50 border-[2px] border-[var(--outline)] flex gap-4 items-start">
                        <RoleBadge role={role} />
                        <p className="text-[0.9rem] font-semibold text-[var(--text-secondary)] leading-snug">{text}</p>
                     </div>
@@ -627,27 +591,27 @@ export default function IncidentDetailPage() {
             </div>
 
             {/* OPERATIONAL TRAY - Integrated into same section to avoid gaps */}
-            <div className="mt-12 pt-12 border-t border-[var(--outline-variant)]/30">
+            <div className="mt-12 pt-12 border-t-[2px] border-[var(--outline)]">
 
             <div className="max-w-md mx-auto flex flex-col gap-6">
                <div className="flex items-center gap-3 mb-2">
                  <div className="h-[2px] w-8 bg-[var(--accent)]" />
-                 <h3 className="mono-display text-[0.7rem] font-black text-[var(--text-muted)] tracking-[0.2em] uppercase">Field_Operations</h3>
+                 <h3 className="font-data text-[0.6rem] font-black text-[var(--text-muted)] tracking-[0.2em] uppercase">Field_Operations</h3>
                </div>
 
                {/* Secondary Actions Bar */}
                {incident.status !== 'resolved' && (
                  <div className="flex gap-3">
-                    <button onClick={() => setBroadcastOpen(true)} className="flex-1 h-14 rounded-2xl bg-[var(--surface-high)] border border-[var(--outline-variant)] flex items-center justify-center gap-2 active:scale-95 transition-all">
-                       <span className="material-icons-round text-xl text-[var(--accent)]">campaign</span>
+                    <button onClick={() => setBroadcastOpen(true)} className="flex-1 h-14 bg-[var(--surface)] border-[2px] border-[var(--outline)] flex items-center justify-center gap-2 active:scale-95 transition-all hover:border-[var(--accent)]">
+                       <span className="material-icons-sharp text-xl text-[var(--accent)]">campaign</span>
                        <span className="text-[0.65rem] font-black uppercase tracking-widest">Broadcast</span>
                     </button>
-                    <button onClick={() => fileInputRef.current?.click()} className="flex-1 h-14 rounded-2xl bg-[var(--surface-high)] border border-[var(--outline-variant)] flex items-center justify-center gap-2 active:scale-95 transition-all">
-                       <span className="material-icons-round text-xl text-[var(--text-secondary)]">camera_alt</span>
+                    <button onClick={() => fileInputRef.current?.click()} className="flex-1 h-14 bg-[var(--surface)] border-[2px] border-[var(--outline)] flex items-center justify-center gap-2 active:scale-95 transition-all hover:border-[var(--accent)]">
+                       <span className="material-icons-sharp text-xl text-[var(--text-secondary)]">camera_alt</span>
                        <span className="text-[0.65rem] font-black uppercase tracking-widest">Upload Intel</span>
                     </button>
-                    <button onClick={() => setShowIssueModal(true)} className="w-14 h-14 rounded-2xl bg-red-600/10 border border-red-600/30 flex items-center justify-center active:scale-95 transition-all">
-                       <span className="material-icons-round text-xl text-red-500">warning</span>
+                    <button onClick={() => setShowIssueModal(true)} className="w-14 h-14 bg-red-600/10 border-[2px] border-red-600/30 flex items-center justify-center active:scale-95 transition-all hover:border-red-500">
+                       <span className="material-icons-sharp text-xl text-red-500">warning</span>
                     </button>
                  </div>
                )}
@@ -656,7 +620,7 @@ export default function IncidentDetailPage() {
                {incident.status !== 'resolved' && (
                  <div className="relative">
                     <input 
-                      className="w-full h-14 pl-6 pr-14 bg-[var(--surface-high)]/60 border border-[var(--outline-variant)] rounded-2xl text-[1rem] font-bold placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--accent)] transition-all"
+                      className="w-full h-14 pl-6 pr-14 bg-[var(--surface)]/60 border-[2px] border-[var(--outline)] text-[1rem] font-bold placeholder:text-[var(--text-muted)]/50 focus:outline-none focus:border-[var(--accent)] transition-all"
                       placeholder="Transmit SITREP update..."
                       value={updateText}
                       onChange={(e) => setUpdateText(e.target.value)}
@@ -665,9 +629,9 @@ export default function IncidentDetailPage() {
                     <button 
                       onClick={postUpdate}
                       disabled={postingUpdate || !updateText.trim()}
-                      className="absolute right-2.5 top-2.5 w-9 h-9 flex items-center justify-center bg-[var(--accent)] text-black rounded-xl active:scale-90 transition-all disabled:opacity-30 shadow-lg"
+                      className="absolute right-2.5 top-2.5 w-9 h-9 flex items-center justify-center bg-[var(--accent)] text-black active:scale-90 transition-all disabled:opacity-30"
                     >
-                      <span className="material-icons-round text-xl">send</span>
+                       <span className="material-icons-sharp text-xl">send</span>
                     </button>
                  </div>
                )}
@@ -677,9 +641,9 @@ export default function IncidentDetailPage() {
                   {incident.status === 'resolved' ? (
                     <button 
                       onClick={() => router.push('/dashboard')}
-                      className="w-full h-16 rounded-2xl bg-green-500 text-black flex items-center justify-center gap-4 text-sm font-black uppercase tracking-[0.2em] shadow-lg active:scale-[0.98] transition-all"
+                      className="w-full h-16 bg-green-500 text-black flex items-center justify-center gap-4 text-sm font-black uppercase tracking-[0.2em] active:scale-[0.98] transition-all"
                     >
-                       <span className="material-icons-round text-2xl">check_circle</span>
+                       <span className="material-icons-sharp text-2xl">check_circle</span>
                        <span>Mission Completed</span>
                     </button>
                   ) : (
@@ -690,7 +654,7 @@ export default function IncidentDetailPage() {
                         else if (incident.status === 'acknowledged') updateStatus('responding', 'Unit deployed and responding to site')
                         else if (incident.status === 'responding') setShowResolveModal(true)
                       }}
-                      className={`w-full h-16 rounded-2xl flex items-center justify-center gap-4 text-base font-black uppercase tracking-[0.2em] transition-all active:scale-[0.98] shadow-xl relative overflow-hidden ${
+                      className={`w-full h-16 flex items-center justify-center gap-4 text-base font-black uppercase tracking-[0.2em] transition-all active:scale-[0.98] relative overflow-hidden ${
                         incident.status === 'reported' ? 'bg-[var(--accent)] text-black' :
                         incident.status === 'acknowledged' ? 'bg-blue-600 text-white' :
                         'bg-green-600 text-white'
@@ -698,7 +662,7 @@ export default function IncidentDetailPage() {
                     >
                        {updating && (
                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center backdrop-blur-sm z-20">
-                            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <div className="w-6 h-6 border-2 border-white border-t-transparent animate-spin" />
                          </div>
                        )}
                        <span className="relative z-10">
@@ -725,9 +689,9 @@ export default function IncidentDetailPage() {
       {/* Resolve Mission Sheet */}
       {showResolveModal && (
         <div className="fixed inset-0 z-[2000] bg-black/70 backdrop-blur-md flex items-end justify-center">
-           <div className="w-full max-w-lg bg-[var(--bg-base)] rounded-t-[48px] border-t border-[var(--outline-variant)] shadow-2xl animate-slide-up">
+           <div className="w-full max-w-lg bg-[var(--bg-base)] border-t-[2px] border-[var(--outline)] animate-slide-up">
               <div className="p-8 pb-[calc(2rem+var(--safe-bottom))]">
-                 <div className="w-12 h-1.5 bg-[var(--outline-variant)] rounded-full mx-auto mb-8" onClick={() => setShowResolveModal(false)} />
+                 <div className="w-12 h-1.5 bg-[var(--outline)] mx-auto mb-8 cursor-pointer" onClick={() => setShowResolveModal(false)} />
                  <h3 className="text-3xl font-black uppercase tracking-tighter mb-2">Mission_Summary</h3>
                  <p className="mono-display text-[0.7rem] text-[var(--text-muted)] tracking-widest uppercase mb-8">COMPLETING_OPERATION_CYCLE</p>
                  
@@ -739,8 +703,8 @@ export default function IncidentDetailPage() {
                             <button 
                               key={o} 
                               onClick={() => setResolveOutcome(o)}
-                              className={`flex-1 h-12 rounded-xl border mono-display text-[0.6rem] font-black uppercase tracking-widest transition-all ${
-                                resolveOutcome === o ? 'bg-[var(--accent)] border-[var(--accent)] text-black' : 'bg-[var(--surface-high)] border-[var(--outline-variant)] text-[var(--text-muted)]'
+                              className={`flex-1 h-12 border-[2px] font-data text-[0.6rem] font-black uppercase tracking-[0.15em] transition-all ${
+                                resolveOutcome === o ? 'bg-[var(--accent)] border-[var(--accent)] text-black' : 'bg-[var(--surface)] border-[var(--outline)] text-[var(--text-muted)]'
                               }`}
                             >
                               {o.replace('_', ' ')}
@@ -752,7 +716,7 @@ export default function IncidentDetailPage() {
                     <div className="flex flex-col gap-2">
                        <label className="mono-display text-[0.6rem] font-black text-[var(--text-muted)] uppercase tracking-widest ml-4">Final_SITREP_Report</label>
                        <textarea 
-                          className="w-full h-40 p-6 bg-[var(--surface-high)] border border-[var(--outline-variant)] rounded-[32px] text-lg font-bold placeholder:text-[var(--text-muted)]/30 focus:outline-none focus:border-[var(--accent)] transition-all resize-none"
+                          className="w-full h-40 p-6 bg-[var(--surface)] border-[2px] border-[var(--outline)] text-lg font-bold placeholder:text-[var(--text-muted)]/30 focus:outline-none focus:border-[var(--accent)] transition-all resize-none"
                           placeholder="Detail the mission resolution..."
                           value={resolveSummary}
                           onChange={(e) => setResolveSummary(e.target.value)}
@@ -762,7 +726,7 @@ export default function IncidentDetailPage() {
                     <button 
                       onClick={handleResolveMission}
                       disabled={!resolveSummary.trim()}
-                      className="w-full h-16 bg-green-500 text-black font-black uppercase tracking-[0.2em] rounded-2xl shadow-[0_15px_40px_rgba(34,197,94,0.4)] active:scale-95 transition-all disabled:opacity-30"
+                      className="w-full h-16 bg-green-500 text-black font-black uppercase tracking-[0.2em] active:scale-95 transition-all disabled:opacity-30"
                     >
                        Submit Mission Log
                     </button>
@@ -782,9 +746,9 @@ export default function IncidentDetailPage() {
       {/* Broadcast Sheet */}
       {broadcastOpen && (
         <div className="fixed inset-0 z-[2000] bg-black/70 backdrop-blur-md flex items-end justify-center">
-           <div className="w-full max-w-lg bg-[var(--bg-base)] rounded-t-[48px] border-t border-[var(--outline-variant)] shadow-2xl animate-slide-up">
+           <div className="w-full max-w-lg bg-[var(--bg-base)] border-t-[2px] border-[var(--outline)] animate-slide-up">
               <div className="p-8 pb-[calc(2rem+var(--safe-bottom))]">
-                 <div className="w-12 h-1.5 bg-[var(--outline-variant)] rounded-full mx-auto mb-8" onClick={() => setBroadcastOpen(false)} />
+                 <div className="w-12 h-1.5 bg-[var(--outline)] mx-auto mb-8 cursor-pointer" onClick={() => setBroadcastOpen(false)} />
                  <h3 className="text-3xl font-black uppercase tracking-tighter mb-2">Broadcast_Center</h3>
                  <p className="mono-display text-[0.7rem] text-[var(--text-muted)] tracking-widest uppercase mb-8">DIRECT_TO_GUEST_TRANSMISSION</p>
 
@@ -796,8 +760,8 @@ export default function IncidentDetailPage() {
                             <button 
                               key={m} 
                               onClick={() => setBroadcastMode(m)}
-                              className={`flex-1 h-12 rounded-xl border mono-display text-[0.6rem] font-black uppercase tracking-widest transition-all ${
-                                broadcastMode === m ? 'bg-[var(--accent)] border-[var(--accent)] text-black' : 'bg-[var(--surface-high)] border-[var(--outline-variant)] text-[var(--text-muted)]'
+                              className={`flex-1 h-12 border-[2px] font-data text-[0.6rem] font-black uppercase tracking-[0.15em] transition-all ${
+                                broadcastMode === m ? 'bg-[var(--accent)] border-[var(--accent)] text-black' : 'bg-[var(--surface)] border-[var(--outline)] text-[var(--text-muted)]'
                               }`}
                             >
                               {m}
@@ -808,7 +772,7 @@ export default function IncidentDetailPage() {
 
                     {broadcastMode !== 'all' && (
                       <input 
-                        className="w-full h-14 px-6 bg-[var(--surface-high)] border border-[var(--outline-variant)] rounded-2xl font-bold"
+                        className="w-full h-14 px-6 bg-[var(--surface)] border-[2px] border-[var(--outline)] font-bold"
                         placeholder={broadcastMode === 'floors' ? "e.g. 1, 4, 12" : "e.g. 101, 204, 310"}
                         value={broadcastMode === 'floors' ? broadcastFloors : broadcastRooms}
                         onChange={(e) => broadcastMode === 'floors' ? setBroadcastFloors(e.target.value) : setBroadcastRooms(e.target.value)}
@@ -818,7 +782,7 @@ export default function IncidentDetailPage() {
                     <div className="flex flex-col gap-2">
                        <label className="mono-display text-[0.6rem] font-black text-[var(--text-muted)] uppercase tracking-widest ml-4">Message_Data</label>
                        <textarea 
-                          className="w-full h-32 p-6 bg-[var(--surface-high)] border border-[var(--outline-variant)] rounded-[32px] text-lg font-bold focus:outline-none focus:border-[var(--accent)] transition-all resize-none"
+                          className="w-full h-32 p-6 bg-[var(--surface)] border-[2px] border-[var(--outline)] text-lg font-bold focus:outline-none focus:border-[var(--accent)] transition-all resize-none"
                           value={broadcastMessage}
                           onChange={(e) => setBroadcastMessage(e.target.value)}
                        />
@@ -827,7 +791,7 @@ export default function IncidentDetailPage() {
                     <button 
                       onClick={sendBroadcast}
                       disabled={sendingBroadcast || !broadcastMessage.trim()}
-                      className="w-full h-16 bg-[var(--accent)] text-black font-black uppercase tracking-[0.2em] rounded-2xl shadow-[0_15px_40px_rgba(255,153,51,0.4)] active:scale-95 transition-all"
+                      className="w-full h-16 bg-[var(--accent)] text-black font-black uppercase tracking-[0.2em] active:scale-95 transition-all"
                     >
                        {sendingBroadcast ? 'TRANSMITTING...' : 'Engage Broadcast'}
                     </button>
@@ -840,15 +804,15 @@ export default function IncidentDetailPage() {
       {/* Issue Modal */}
       {showIssueModal && (
         <div className="fixed inset-0 z-[2000] bg-black/70 backdrop-blur-md flex items-center justify-center p-6">
-           <div className="w-full max-w-sm bg-[var(--bg-base)] rounded-[40px] border border-red-500/30 p-8 shadow-2xl">
-              <div className="w-16 h-16 rounded-2xl bg-red-600/10 flex items-center justify-center mb-6 mx-auto">
-                 <span className="material-icons-round text-3xl text-red-500">priority_high</span>
+           <div className="w-full max-w-sm bg-[var(--bg-base)] border-[2px] border-red-500/30 p-8">
+              <div className="w-16 h-16 bg-red-600/10 flex items-center justify-center mb-6 mx-auto border-[2px] border-red-500/20">
+                 <span className="material-icons-sharp text-3xl text-red-500">priority_high</span>
               </div>
               <h3 className="text-2xl font-black text-center uppercase tracking-tight mb-2">Report_Issue</h3>
               <p className="text-[0.7rem] font-black text-center text-[var(--text-muted)] tracking-widest mb-8">ESCALATE_TO_COMMAND</p>
 
               <textarea 
-                 className="w-full h-32 p-5 bg-[var(--surface-high)] border border-[var(--outline-variant)] rounded-2xl font-bold mb-6 focus:border-red-500/50 focus:outline-none"
+                 className="w-full h-32 p-5 bg-[var(--surface)] border-[2px] border-[var(--outline)] font-bold mb-6 focus:border-red-500/50 focus:outline-none"
                  placeholder="Describe the complication..."
                  value={issueText}
                  onChange={(e) => setIssueText(e.target.value)}
@@ -857,7 +821,7 @@ export default function IncidentDetailPage() {
               <div className="flex flex-col gap-3">
                  <button 
                    onClick={handleIssueReport}
-                   className="w-full h-14 bg-red-600 text-white font-black uppercase tracking-widest rounded-xl shadow-lg active:scale-95"
+                   className="w-full h-14 bg-red-600 text-white font-black uppercase tracking-[0.2em] active:scale-95"
                  >
                    Transmit Warning
                  </button>

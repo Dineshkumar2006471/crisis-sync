@@ -9,6 +9,7 @@ export interface StaffSession {
   display_name: string
   role: StaffRole
   hotel_id: string
+  active: boolean
 }
 
 const STAFF_SESSION_KEY = 'crisis_sync_staff_session'
@@ -35,7 +36,8 @@ export async function fetchStaffSession(uid: string): Promise<StaffSession | nul
     email: String(data.email || ''),
     display_name: String(data.display_name || data.name || 'Staff'),
     role: normalizeRole(data.role),
-    hotel_id: String(data.hotel_id || 'default'),
+    hotel_id: String(data.hotel_id || 'hotel_001'),
+    active: data.active !== false,
   }
 }
 
@@ -56,7 +58,8 @@ export function getSavedStaffSession(): StaffSession | null {
       email: String(parsed.email || ''),
       display_name: String(parsed.display_name || 'Staff'),
       role: normalizeRole(parsed.role),
-      hotel_id: String(parsed.hotel_id || 'default'),
+      hotel_id: String(parsed.hotel_id || 'hotel_001'),
+      active: parsed.active !== false,
     }
   } catch {
     return null

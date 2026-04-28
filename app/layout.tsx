@@ -1,53 +1,47 @@
 import type { Metadata, Viewport } from 'next'
-import { Epilogue, JetBrains_Mono, Manrope, Space_Grotesk } from 'next/font/google'
+import { Fraunces, Inter, JetBrains_Mono } from 'next/font/google'
+import { AppWrapper } from '@/components/AppWrapper'
+import { GoogleMapsProvider } from '@/components/GoogleMapsProvider'
 import './globals.css'
 
 export const viewport: Viewport = {
-  themeColor: '#0A0C10',
+  themeColor: '#050505',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
 }
 
-import { AppWrapper } from '@/components/AppWrapper'
-import { GoogleMapsProvider } from '@/components/GoogleMapsProvider'
-
-const epilogue = Epilogue({
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '700', '900'], // Reduced to only essential weights
-  variable: '--font-headline',
-  display: 'swap',
-  preload: false,
-})
-
-const manrope = Manrope({
-  subsets: ['latin'],
-  weight: ['400', '600'], // Reduced to only essential weights
   variable: '--font-body',
   display: 'swap',
-  preload: false,
 })
 
-const spaceGrotesk = Space_Grotesk({
+const interDisplay = Inter({
   subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-label',
+  weight: ['800', '900'],
+  variable: '--font-display',
   display: 'swap',
-  preload: false, // Don't block initial load for labels
 })
 
-const jetBrainsMono = JetBrains_Mono({
+const fraunces = Fraunces({
   subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-mono',
+  variable: '--font-heading',
   display: 'swap',
-  preload: false, // Don't block initial load for mono text
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-data',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
   title: 'CrisisSync — Rapid Crisis Response Platform',
-  description: 'Real-time AI-powered crisis coordination for hotels. Report emergencies, classify threats with Gemini AI, broadcast alerts to staff in under 60 seconds.',
-  keywords: 'crisis response, hotel safety, emergency management, AI classification, real-time alerts',
+  description:
+    'Real-time AI-powered crisis coordination for hotels. Report emergencies, classify threats with Gemini AI, broadcast alerts to staff in under 60 seconds.',
+  keywords:
+    'crisis response, hotel safety, emergency management, AI classification, real-time alerts',
   authors: [{ name: 'CrisisSync Team' }],
   manifest: '/manifest.json',
   appleWebApp: {
@@ -65,17 +59,18 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp"
+        />
       </head>
       <body
-        className={`${epilogue.variable} ${manrope.variable} ${spaceGrotesk.variable} ${jetBrainsMono.variable} material-icons-fallback`}
-        style={{ background: '#0A0C10' }}
+        className={`${interDisplay.variable} ${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} material-icons-fallback`}
+        style={{ background: '#050505' }}
         suppressHydrationWarning
       >
         <GoogleMapsProvider>
-          <AppWrapper>
-            {children}
-          </AppWrapper>
+          <AppWrapper>{children}</AppWrapper>
         </GoogleMapsProvider>
       </body>
     </html>

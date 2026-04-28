@@ -40,7 +40,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: '#0A0C10',
+      background: '#050505',
       zIndex: 9999,
       display: 'flex',
       flexDirection: 'column',
@@ -48,42 +48,36 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
       justifyContent: 'center',
       padding: '24px',
       color: 'white',
-      fontFamily: 'var(--font-mono)'
+      fontFamily: 'var(--font-data)'
     }}>
-      {/* Tactical Glow */}
+      {/* Tactical scan-line overlay */}
       <div style={{
         position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: '300px',
-        height: '300px',
-        background: 'var(--accent)',
-        filter: 'blur(100px)',
-        opacity: 0.1,
-        borderRadius: '50%'
+        inset: 0,
+        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.015) 2px, rgba(255,255,255,0.015) 4px)',
+        pointerEvents: 'none'
       }} />
 
-      <div className="animate-pulse-tactical" style={{ marginBottom: '40px' }}>
+      <div style={{ marginBottom: '40px' }}>
         <div style={{ 
           width: '80px', 
           height: '80px', 
-          border: '4px solid var(--accent)', 
-          borderRadius: '12px',
+          border: '2px solid var(--accent)', 
+          borderRadius: '0px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <span className="material-icons-round" style={{ fontSize: '48px', color: 'var(--accent)' }}>
+          <span className="material-icons-sharp" style={{ fontSize: '48px', color: 'var(--accent)' }}>
             emergency
           </span>
         </div>
       </div>
 
-      <div style={{ width: '100%', maxWidth: '240px' }}>
+      <div style={{ width: '100%', maxWidth: '280px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span style={{ fontSize: '0.65rem', color: 'var(--accent)', letterSpacing: '0.1em' }}>{status}</span>
-          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{Math.round(progress)}%</span>
+          <span style={{ fontSize: '0.6rem', color: 'var(--accent)', letterSpacing: '0.2em', fontWeight: 900 }}>{status}</span>
+          <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)', fontWeight: 900 }}>{Math.round(progress)}%</span>
         </div>
         <div style={{ 
           height: '2px', 
@@ -95,8 +89,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
             height: '100%', 
             width: `${progress}%`, 
             background: 'var(--accent)',
-            transition: 'width 0.2s ease-out',
-            boxShadow: '0 0 10px var(--accent)'
+            transition: 'width 0.2s ease-out'
           }} />
         </div>
       </div>
@@ -104,9 +97,10 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
       <div style={{ 
         position: 'absolute', 
         bottom: '40px', 
-        fontSize: '0.6rem', 
-        color: 'var(--text-muted)',
-        letterSpacing: '0.2em'
+        fontSize: '0.55rem', 
+        color: 'rgba(255,255,255,0.25)',
+        letterSpacing: '0.25em',
+        fontWeight: 900
       }}>
         CRISIS_SYNC // V1.2.0_SECURE
       </div>

@@ -6,12 +6,14 @@ import { collection, getDocs, query, where } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
 import type { StaffProfile } from '@/lib/types'
 import { AuthGuard } from '@/components/AuthGuard'
+import { getSavedStaffSession } from '@/lib/staffProfile'
 
 import { ThemeToggle } from '@/components/ThemeToggle'
 
 export default function PersonnelPage() {
   const [staff, setStaff] = useState<StaffProfile[]>([])
   const [loading, setLoading] = useState(true)
+  const hotelId = getSavedStaffSession()?.hotel_id || 'default'
 
   useEffect(() => {
     let isMounted = true
@@ -25,9 +27,11 @@ export default function PersonnelPage() {
 
     const loadStaff = async () => {
       try {
-        const q = query(collection(db, 'staff'), where('active', '==', true))
+        const q = query(collection(db, 'staff'), where('hotel_id', '==', hotelId))
         const snap = await getDocs(q)
-        const rows = snap.docs.map((d) => ({ uid: d.id, ...d.data() } as StaffProfile))
+        const rows = snap.docs
+          .map((d) => ({ uid: d.id, ...d.data() } as StaffProfile))
+          .filter((member) => member.active)
         if (isMounted) setStaff(rows)
       } catch (err) {
         console.error('Failed to load staff:', err)
@@ -41,7 +45,7 @@ export default function PersonnelPage() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [hotelId])
 
   return (
     <AuthGuard>
@@ -59,8 +63,8 @@ export default function PersonnelPage() {
           borderBottom: '1px solid var(--outline-variant)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }} id="header-left">
-            <Link href="/dashboard" className="hover-opacity" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '8px', border: '1px solid var(--outline)' }}>
-              <span className="material-icons-round">arrow_back</span>
+            <Link href="/dashboard" className="hover-opacity" style={{ color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '8px', borderRadius: '0px', border: '2px solid var(--outline)' }}>
+              <span className="material-icons-sharp">arrow_back</span>
             </Link>
             <div>
               <h1 className="mono-display" style={{ fontSize: '1rem', fontWeight: 800, margin: 0, letterSpacing: '0.1em' }}>PERSONNEL_ROSTER.EXE</h1>
@@ -72,7 +76,7 @@ export default function PersonnelPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }} id="header-right">
             <div className="mono-display" style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }} id="count-badge">
-              <span className="material-icons-round" style={{ fontSize: '16px' }}>group</span>
+              <span className="material-icons-sharp" style={{ fontSize: '16px' }}>group</span>
               <span>COUNT: {staff.length.toString().padStart(2, '0')}</span>
             </div>
             <ThemeToggle />
@@ -95,8 +99,8 @@ export default function PersonnelPage() {
               <div className="mono-display" style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 800, letterSpacing: '0.2em' }}>SCANNING_BIOMETRIC_RECORDS...</div>
             </div>
           ) : staff.length === 0 ? (
-            <div className="tactical-border glass-premium" style={{ padding: '80px 40px', textAlign: 'center', opacity: 0.5, border: '1px dashed var(--outline-variant)' }}>
-              <span className="material-icons-round" style={{ fontSize: '48px', color: 'var(--text-muted)', marginBottom: '16px' }}>no_accounts</span>
+            <div className="tactical-border glass-premium" style={{ padding: '80px 40px', textAlign: 'center', opacity: 0.5, border: '2px dashed var(--outline-variant)', borderRadius: '0px' }}>
+              <span className="material-icons-sharp" style={{ fontSize: '48px', color: 'var(--text-muted)', marginBottom: '16px' }}>no_accounts</span>
               <p className="mono-display" style={{ margin: 0, fontWeight: 900, letterSpacing: '0.2em' }}>ZERO_OPERATORS_DETECTED</p>
               <p style={{ marginTop: '12px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Standing by for personnel deployment.</p>
             </div>
@@ -107,7 +111,8 @@ export default function PersonnelPage() {
                   padding: '24px', 
                   background: 'rgba(255,255,255,0.02)',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  border: '1px solid var(--outline-variant)'
+                  border: '3px solid var(--outline-variant)',
+                  borderRadius: '0px'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-4px)';
@@ -124,15 +129,15 @@ export default function PersonnelPage() {
                     <div style={{ 
                       width: '48px', 
                       height: '48px', 
-                      borderRadius: '8px', 
+                      borderRadius: '0px', 
                       background: 'rgba(255, 153, 51, 0.05)', 
                       display: 'flex', 
                       alignItems: 'center', 
                       justifyContent: 'center',
                       color: 'var(--accent)',
-                      border: '1px solid var(--accent-muted)'
+                      border: '2px solid var(--accent-muted)'
                     }}>
-                      <span className="material-icons-round" style={{ fontSize: '24px' }}>person</span>
+                      <span className="material-icons-sharp" style={{ fontSize: '24px' }}>person</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                       <div className="mono-display" style={{ 
@@ -141,8 +146,8 @@ export default function PersonnelPage() {
                         fontWeight: 900,
                         background: 'rgba(255, 153, 51, 0.1)',
                         padding: '2px 8px',
-                        borderRadius: '4px',
-                        border: '1px solid var(--accent-muted)'
+                        borderRadius: '0px',
+                        border: '2px solid var(--accent-muted)'
                       }}>
                         {member.role.toUpperCase()}
                       </div>
@@ -164,7 +169,7 @@ export default function PersonnelPage() {
                     <div className="mono-display" style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
                       ID_{member.uid.slice(0, 8).toUpperCase()}
                     </div>
-                    <span className="material-icons-round" style={{ fontSize: '16px', color: 'var(--text-muted)', opacity: 0.5 }}>verified_user</span>
+                    <span className="material-icons-sharp" style={{ fontSize: '16px', color: 'var(--text-muted)', opacity: 0.5 }}>verified_user</span>
                   </div>
                 </div>
               ))}

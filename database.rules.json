@@ -3,10 +3,8 @@
     ".read": false,
     ".write": false,
     "live_incidents": {
-      ".read": "auth != null",
-      "$incidentId": {
-        ".write": "auth != null"
-      }
+      ".read": false,
+      ".write": false
     },
     "presence": {
       "$uid": {

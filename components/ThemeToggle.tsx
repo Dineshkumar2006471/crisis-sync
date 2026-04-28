@@ -21,23 +21,22 @@ export function ThemeToggle() {
     <button
       onClick={toggleTheme}
       style={{
-        background: 'var(--accent)',
-        border: '3px solid var(--surface)',
-        borderRadius: '50%',
-        width: '28px',
-        height: '28px',
+        background: 'var(--surface)',
+        border: '2px solid var(--outline)',
+        borderRadius: '0px',
+        width: '32px',
+        height: '32px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         cursor: 'pointer',
-        color: '#FFFFFF',
-        transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+        color: 'var(--text-primary)',
+        transition: 'all 0.15s ease',
       }}
       aria-label="Toggle Theme"
-      className="theme-toggle-dock"
+      className="theme-toggle-dock hover:border-[var(--accent)] hover:text-[var(--accent)]"
     >
-      <span className="material-icons-round" style={{ fontSize: '14px' }}>
+      <span className="material-icons-sharp" style={{ fontSize: '16px' }}>
         {theme === 'light' ? 'dark_mode' : 'light_mode'}
       </span>
     </button>
